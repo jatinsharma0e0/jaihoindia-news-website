@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Clock, ExternalLink } from 'lucide-react';
 import { NewsArticle, CATEGORY_COLORS } from '@/types/news';
-import { cn } from '@/lib/utils';
+import { cn, getNewsImageUrl } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
 interface FeaturedNewsCardProps {
@@ -9,7 +9,9 @@ interface FeaturedNewsCardProps {
 }
 
 export function FeaturedNewsCard({ article }: FeaturedNewsCardProps) {
-  const timeAgo = formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true });
+  const date = article.publishedAt ? new Date(article.publishedAt) : new Date();
+  const isValidDate = !isNaN(date.getTime());
+  const timeAgo = isValidDate ? formatDistanceToNow(date, { addSuffix: true }) : 'Just now';
 
   return (
     <article className="news-card group relative overflow-hidden rounded-lg bg-card shadow-news">
@@ -17,7 +19,7 @@ export function FeaturedNewsCard({ article }: FeaturedNewsCardProps) {
         {/* Image */}
         <div className="aspect-[16/10] overflow-hidden h-full">
           <img
-            src={article.image || '/placeholder.svg'}
+            src={getNewsImageUrl(article.image)}
             alt={article.title}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
@@ -56,7 +58,7 @@ export function FeaturedNewsCard({ article }: FeaturedNewsCardProps) {
                 <Clock className="h-3 w-3" />
                 {timeAgo}
               </span>
-              <span className="font-medium">{article.source}</span>
+              <span className="font-medium">{article.source || article.author}</span>
             </div>
 
             <span className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium transition-colors">

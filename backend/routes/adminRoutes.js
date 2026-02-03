@@ -69,7 +69,9 @@ router.post('/upload', upload.single('image'), (req, res) => {
             });
         }
 
-        const fileUrl = `/uploads/${req.file.filename}`;
+        // Use config.server.url or hardcode for now
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
 
         res.json({
             success: true,

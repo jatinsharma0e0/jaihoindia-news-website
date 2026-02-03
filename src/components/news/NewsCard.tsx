@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Clock, ExternalLink } from 'lucide-react';
 import { NewsArticle, CATEGORY_COLORS } from '@/types/news';
-import { cn } from '@/lib/utils';
+import { cn, getNewsImageUrl } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
 interface NewsCardProps {
@@ -10,7 +10,9 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
-  const timeAgo = formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true });
+  const date = article.publishedAt ? new Date(article.publishedAt) : new Date();
+  const isValidDate = !isNaN(date.getTime());
+  const timeAgo = isValidDate ? formatDistanceToNow(date, { addSuffix: true }) : 'Just now';
 
   if (variant === 'compact') {
     return (
@@ -31,7 +33,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
               {article.title}
             </h3>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{article.source}</span>
+              <span>{article.source || article.author}</span>
               <span>•</span>
               <span>{timeAgo}</span>
             </div>
@@ -85,7 +87,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
                 <Clock className="h-3 w-3" />
                 <span>{timeAgo}</span>
                 <span>•</span>
-                <span className="font-medium">{article.source}</span>
+                <span className="font-medium">{article.source || article.author}</span>
               </div>
               {/* Removed direct external link to keep card clickable. User can go to detail page first. */}
               <div className="text-primary hover:underline">
@@ -105,7 +107,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
         {/* Image */}
         <div className="aspect-[16/10] overflow-hidden">
           <img
-            src={article.image || '/placeholder.svg'}
+            src={getNewsImageUrl(article.image)}
             alt={article.title}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
@@ -142,7 +144,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
               <span>{timeAgo}</span>
             </div>
             <span className="flex items-center gap-1 font-medium">
-              {article.source}
+              {article.source || article.author}
             </span>
           </div>
         </div>

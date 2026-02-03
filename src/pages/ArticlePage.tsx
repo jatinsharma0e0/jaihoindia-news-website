@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
+
 import { ArrowLeft, ExternalLink, Calendar, User, Tag, Share2 } from 'lucide-react';
+import { getNewsImageUrl } from '@/lib/utils';
 import { Layout } from '@/components/layout/Layout';
 import { NewsCard } from '@/components/news/NewsCard';
 import { getArticle } from '@/services/api';
@@ -98,7 +100,7 @@ const ArticlePage = () => {
                             <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 capitalize">
                                 {article.category}
                             </Badge>
-                            {isOriginal && <Badge border variant="outline" className="border-primary text-primary">Original</Badge>}
+                            {isOriginal && <Badge variant="outline" className="border-primary text-primary">Original</Badge>}
                         </div>
 
                         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
@@ -113,7 +115,7 @@ const ArticlePage = () => {
                             <div className="flex items-center">
                                 <Calendar className="w-4 h-4 mr-2" />
                                 <time dateTime={publishedDate.toISOString()}>
-                                    {formatDistanceToNow(publishedDate, { addSuffix: true })}
+                                    {!isNaN(publishedDate.getTime()) ? format(publishedDate, "MMMM d, yyyy 'at' h:mm a") : 'Unknown Date'}
                                 </time>
                             </div>
                             <div className="ml-auto">
@@ -129,7 +131,7 @@ const ArticlePage = () => {
                     {article.image && (
                         <figure className="mb-8 rounded-xl overflow-hidden shadow-lg">
                             <img
-                                src={article.image}
+                                src={getNewsImageUrl(article.image)}
                                 alt={article.title}
                                 className="w-full h-auto object-cover max-h-[500px]"
                                 onError={(e) => {

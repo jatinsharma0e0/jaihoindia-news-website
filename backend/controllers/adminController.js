@@ -134,7 +134,11 @@ const getArticles = async (req, res) => {
  */
 const createArticle = async (req, res) => {
     try {
-        const { title, slug, summary, content, image_url, category, tags, status } = req.body;
+        const { title, slug, summary, content, category, status } = req.body;
+        // Handle field mismatches from frontend
+        const image_url = req.body.image_url || req.body.image; // Frontend sends 'image'
+        const tags = req.body.tags || ''; // Optional
+
         const author_id = req.admin.id;
 
         if (!title || !content || !category) {
@@ -176,7 +180,11 @@ const createArticle = async (req, res) => {
 const updateArticle = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, slug, summary, content, image_url, category, tags, status } = req.body;
+        const { title, slug, summary, content, category, status } = req.body;
+
+        // Handle field mismatches
+        const image_url = req.body.image_url || req.body.image;
+        const tags = req.body.tags || '';
 
         const published_at = status === 'published' ? new Date() : null;
 

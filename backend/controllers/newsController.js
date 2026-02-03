@@ -20,10 +20,10 @@ const getHomeNews = async (req, res) => {
 
         // Get JaiHoIndia original articles (latest 5)
         const originalArticles = await query(
-            `SELECT id, title, slug, summary, image_url, category, published_at, author_id
-       FROM articles 
-       WHERE status = 'published' AND is_original = TRUE
-       ORDER BY published_at DESC
+            `SELECT a.id, a.title, a.slug, a.summary, a.image_url, a.category, a.published_at as publishedAt, a.author_id, 'JaiHoIndia' as author
+       FROM articles a
+       WHERE a.status = 'published' AND a.is_original = TRUE
+       ORDER BY a.published_at DESC
        LIMIT 5`
         );
 
@@ -95,10 +95,10 @@ const getCategoryNews = async (req, res) => {
 
         // Get JaiHoIndia original articles for this category (if any)
         const originalArticles = await query(
-            `SELECT id, title, slug, summary, image_url, category, published_at
-       FROM articles 
-       WHERE status = 'published' AND is_original = TRUE AND category = ?
-       ORDER BY published_at DESC
+            `SELECT a.id, a.title, a.slug, a.summary, a.image_url, a.category, a.published_at as publishedAt, 'JaiHoIndia' as author
+       FROM articles a
+       WHERE a.status = 'published' AND a.is_original = TRUE AND a.category = ?
+       ORDER BY a.published_at DESC
        LIMIT 5`,
             [category]
         );
@@ -221,9 +221,9 @@ const getArticleById = async (req, res) => {
 
         // 1. Check Database (Original Articles)
         const dbArticles = await query(
-            `SELECT id, title, slug, summary, content, image_url, category, published_at, author_id, is_original
-             FROM articles 
-             WHERE (id = ? OR slug = ?) AND status = 'published'`,
+            `SELECT a.id, a.title, a.slug, a.summary, a.content, a.image_url, a.category, a.published_at as publishedAt, a.author_id, a.is_original, 'JaiHoIndia' as author
+             FROM articles a
+             WHERE (a.id = ? OR a.slug = ?) AND a.status = 'published'`,
             [id, id]
         );
 
