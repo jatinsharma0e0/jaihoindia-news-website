@@ -151,10 +151,29 @@ const getCacheStats = () => {
     };
 };
 
+/**
+ * Clear the cache file (Hard Reset)
+ * @returns {boolean} - True if successful
+ */
+const clearCache = () => {
+    try {
+        if (fs.existsSync(CACHE_FILE)) {
+            fs.unlinkSync(CACHE_FILE);
+            console.log('🗑️ Cache file deleted (Hard Reset)');
+            return true;
+        }
+        return true; // File doesn't exist, so technically "cleared"
+    } catch (error) {
+        console.error('❌ Cache clear error:', error.message);
+        return false;
+    }
+};
+
 module.exports = {
     saveCache,
     loadCache,
     isCacheValid,
     getCachedNews,
     getCacheStats,
+    clearCache,
 };

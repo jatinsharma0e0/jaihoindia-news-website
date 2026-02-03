@@ -14,6 +14,7 @@ const newsRoutes = require('./routes/newsRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const pagesRoutes = require('./routes/pagesRoutes');
 const youtubeRoutes = require('./routes/youtubeRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 
 // Initialize Express app
 const app = express();
@@ -195,6 +196,7 @@ app.use('/api/news', newsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/pages', pagesRoutes);
 app.use('/api/youtube', youtubeRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // 404 handler
 app.use(notFound);

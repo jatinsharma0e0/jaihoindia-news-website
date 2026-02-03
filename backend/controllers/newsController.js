@@ -8,11 +8,15 @@ const { query } = require('../config/db');
  */
 const getHomeNews = async (req, res) => {
     try {
-        // Get cached news
-        const breakingNews = getCachedNews('breaking', 1, 10);
-        const politics = getCachedNews('politics', 1, 5);
-        const sports = getCachedNews('sports', 1, 5);
-        const technology = getCachedNews('technology', 1, 5);
+        // Check API setting
+        const settings = await query('SELECT setting_value FROM settings WHERE setting_key = "enable_external_api"');
+        const apiEnabled = settings.length > 0 ? settings[0].setting_value === 'true' : true;
+
+        // Get cached news (only if enabled)
+        const breakingNews = apiEnabled ? getCachedNews('breaking', 1, 10) : { articles: [] };
+        const politics = apiEnabled ? getCachedNews('politics', 1, 5) : { articles: [] };
+        const sports = apiEnabled ? getCachedNews('sports', 1, 5) : { articles: [] };
+        const technology = apiEnabled ? getCachedNews('technology', 1, 5) : { articles: [] };
 
         // Get JaiHoIndia original articles (latest 5)
         const originalArticles = await query(
@@ -65,8 +69,22 @@ const getCategoryNews = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
 
-        // Get cached news for category
-        const cachedNews = getCachedNews(category, page, limit);
+        // Check API setting
+        const settings = await query('SELECT setting_value FROM settings WHERE setting_key = "enable_external_api"');
+        const apiEnabled = settings.length > 0 ? settings[0].setting_value === 'true' : true;
+
+        // Get cached news for category (only if enabled)
+        let cachedNews = null;
+        if (apiEnabled) {
+            cachedNews = getCachedNews(category, page, limit);
+        } else {
+            // Return empty structure if disabled
+            cachedNews = {
+                articles: [],
+                pagination: { currentPage: page, totalItems: 0, totalPages: 0 },
+                lastUpdated: new Date().toISOString()
+            };
+        }
 
         if (!cachedNews) {
             return res.status(404).json({
@@ -119,7 +137,21 @@ const getAllNews = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 20;
 
-        const cachedNews = getCachedNews('all', page, limit);
+        // Check API setting
+        const settings = await query('SELECT setting_value FROM settings WHERE setting_key = "enable_external_api"');
+        const apiEnabled = settings.length > 0 ? settings[0].setting_value === 'true' : true;
+
+        let cachedNews = null;
+        if (apiEnabled) {
+            cachedNews = getCachedNews('all', page, limit);
+        } else {
+            // Return empty structure if disabled
+            cachedNews = {
+                articles: [],
+                pagination: { currentPage: page, totalItems: 0, totalPages: 0 },
+                lastUpdated: new Date().toISOString()
+            };
+        }
 
         if (!cachedNews) {
             return res.status(404).json({

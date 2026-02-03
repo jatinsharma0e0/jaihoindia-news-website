@@ -347,10 +347,21 @@ export const uploadImage = async (file: File): Promise<{ success: boolean; url: 
     return response.data;
 };
 
-export const refreshCache = async (): Promise<{ success: boolean; message: string }> => {
+export const refreshCache = async (hardReset: boolean = false): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post<{ success: boolean; message: string }>(
-        API_ENDPOINTS.ADMIN_REFRESH_CACHE
+        API_ENDPOINTS.ADMIN_REFRESH_CACHE,
+        { type: hardReset ? 'hard' : 'soft' }
     );
+    return response.data;
+};
+
+export const fetchSettings = async (): Promise<any> => {
+    const response = await apiClient.get<any>(API_ENDPOINTS.SETTINGS);
+    return response.data;
+};
+
+export const updateSetting = async (key: string, value: string): Promise<any> => {
+    const response = await apiClient.post<any>(API_ENDPOINTS.SETTINGS, { key, value });
     return response.data;
 };
 

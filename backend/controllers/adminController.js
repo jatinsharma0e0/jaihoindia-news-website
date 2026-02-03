@@ -235,11 +235,14 @@ const deleteArticle = async (req, res) => {
  */
 const forceRefresh = async (req, res) => {
     try {
-        await manualRefresh();
+        const { type } = req.body;
+        const hardReset = type === 'hard';
+
+        await manualRefresh({ hardReset });
 
         res.json({
             success: true,
-            message: 'Cache refresh triggered successfully',
+            message: hardReset ? 'Hard cache reset triggered successfully' : 'Cache refresh triggered successfully',
         });
 
     } catch (error) {

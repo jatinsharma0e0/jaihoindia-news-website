@@ -22,7 +22,8 @@ export const API_ENDPOINTS = {
     // Pages endpoints
     PAGES: '/pages',
     PAGE: (slug: string) => `/pages/${slug}`,
-    SETTINGS: '/pages/settings/all',
+    // Settings
+    SETTINGS: '/settings',
 } as const;
 
 // Request timeout (10 seconds)
