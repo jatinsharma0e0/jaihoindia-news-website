@@ -10,7 +10,7 @@ interface NewsCardProps {
 }
 
 export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
-  const timeAgo = formatDistanceToNow(new Date(article.pubDate), { addSuffix: true });
+  const timeAgo = formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true });
 
   if (variant === 'compact') {
     return (
@@ -18,7 +18,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
         {/* Thumbnail */}
         <div className="flex-shrink-0 w-20 h-20 rounded overflow-hidden">
           <img
-            src={article.image_url || '/placeholder.svg'}
+            src={article.image || '/placeholder.svg'}
             alt={article.title}
             className="w-full h-full object-cover"
           />
@@ -30,7 +30,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
             {article.title}
           </h3>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{article.source_name}</span>
+            <span>{article.source}</span>
             <span>•</span>
             <span>{timeAgo}</span>
           </div>
@@ -45,7 +45,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
         {/* Thumbnail */}
         <div className="flex-shrink-0 w-32 md:w-40 aspect-[4/3] rounded-lg overflow-hidden">
           <img
-            src={article.image_url || '/placeholder.svg'}
+            src={article.image || '/placeholder.svg'}
             alt={article.title}
             className="w-full h-full object-cover"
           />
@@ -72,7 +72,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
 
           {/* Description */}
           <p className="text-sm text-muted-foreground line-clamp-2 mb-2 flex-1">
-            {article.description}
+            {article.summary}
           </p>
 
           {/* Meta */}
@@ -81,10 +81,10 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
               <Clock className="h-3 w-3" />
               <span>{timeAgo}</span>
               <span>•</span>
-              <span className="font-medium">{article.source_name}</span>
+              <span className="font-medium">{article.source}</span>
             </div>
             <a
-              href={article.source_url}
+              href={article.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-primary hover:underline"
@@ -99,57 +99,53 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
 
   // Default variant
   return (
-    <article className="news-card rounded-lg bg-card border border-border overflow-hidden hover:shadow-card transition-all">
-      {/* Image */}
-      <div className="aspect-[16/10] overflow-hidden">
-        <img
-          src={article.image_url || '/placeholder.svg'}
-          alt={article.title}
-          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-        />
-      </div>
+    <article className="news-card rounded-lg bg-card border border-border overflow-hidden hover:shadow-card transition-all group">
+      <Link to={`/article/${article.id}`} className="block">
+        {/* Image */}
+        <div className="aspect-[16/10] overflow-hidden">
+          <img
+            src={article.image || '/placeholder.svg'}
+            alt={article.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
 
-      {/* Content */}
-      <div className="p-4">
-        {/* Badges */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className={cn('category-badge text-[10px]', CATEGORY_COLORS[article.category])}>
-            {article.category}
-          </span>
-          {article.isOriginal && (
-            <span className="original-badge text-[10px]">
-              ✦ Original
+        {/* Content */}
+        <div className="p-4">
+          {/* Badges */}
+          <div className="flex items-center gap-2 mb-2">
+            <span className={cn('category-badge text-[10px]', CATEGORY_COLORS[article.category])}>
+              {article.category}
             </span>
-          )}
-        </div>
-
-        {/* Title */}
-        <h3 className="text-base font-bold text-foreground line-clamp-2 mb-2">
-          {article.title}
-        </h3>
-
-        {/* Description */}
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-          {article.description}
-        </p>
-
-        {/* Meta */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Clock className="h-3 w-3" />
-            <span>{timeAgo}</span>
+            {article.isOriginal && (
+              <span className="original-badge text-[10px]">
+                ✦ Original
+              </span>
+            )}
           </div>
-          <a
-            href={article.source_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-primary hover:underline font-medium"
-          >
-            {article.source_name}
-            <ExternalLink className="h-3 w-3" />
-          </a>
+
+          {/* Title */}
+          <h3 className="text-base font-bold text-foreground line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+            {article.title}
+          </h3>
+
+          {/* Description */}
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+            {article.summary}
+          </p>
+
+          {/* Meta */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Clock className="h-3 w-3" />
+              <span>{timeAgo}</span>
+            </div>
+            <span className="flex items-center gap-1 font-medium">
+              {article.source}
+            </span>
+          </div>
         </div>
-      </div>
+      </Link>
     </article>
   );
 }

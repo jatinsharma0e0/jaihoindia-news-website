@@ -7,9 +7,10 @@ interface NewsSectionProps {
   category: NewsCategory;
   articles: NewsArticle[];
   showViewAll?: boolean;
+  title?: string;
 }
 
-export function NewsSection({ category, articles, showViewAll = true }: NewsSectionProps) {
+export function NewsSection({ category, articles, showViewAll = true, title }: NewsSectionProps) {
   if (articles.length === 0) return null;
 
   return (
@@ -19,7 +20,7 @@ export function NewsSection({ category, articles, showViewAll = true }: NewsSect
         <div className="flex items-center gap-3">
           <div className="w-1 h-8 bg-primary rounded-full" />
           <h2 className="text-xl md:text-2xl font-bold text-foreground">
-            {CATEGORY_LABELS[category]}
+            {title || CATEGORY_LABELS[category]}
           </h2>
         </div>
         {showViewAll && (

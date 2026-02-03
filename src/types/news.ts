@@ -1,16 +1,17 @@
 export interface NewsArticle {
   id: string;
   title: string;
-  description: string;
+  summary: string; // Changed from 'description' to match backend
   content?: string;
-  image_url?: string;
-  source_id: string;
-  source_name: string;
-  source_url: string;
-  pubDate: string;
+  image?: string; // Changed from 'image_url' to match backend
+  source: string; // Changed from 'source_name' to match backend
+  sourceUrl: string; // Changed from 'source_url' to match backend
+  publishedAt: string; // Changed from 'pubDate' to match backend
   category: NewsCategory;
   isOriginal?: boolean;
   author?: string;
+  language?: string;
+  country?: string;
 }
 
 export type NewsCategory = 'breaking' | 'politics' | 'sports' | 'technology';
