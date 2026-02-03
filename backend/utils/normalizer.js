@@ -63,9 +63,10 @@ const normalizeArticles = (articles) => {
 
     const normalized = articles
         .map(normalizeArticle)
-        .filter(article => article !== null);
+        .filter(article => article !== null)
+        .filter(article => article.image && article.image.trim() !== ''); // Filter out articles without images
 
-    console.log(`✅ Normalized ${normalized.length} articles from ${articles.length} raw items`);
+    console.log(`✅ Normalized ${normalized.length} articles (with images) from ${articles.length} raw items`);
 
     return normalized;
 };

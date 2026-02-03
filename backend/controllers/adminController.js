@@ -91,7 +91,7 @@ const getArticles = async (req, res) => {
         const { status, category } = req.query;
 
         let sql = `
-      SELECT a.*, ad.username as author_name
+      SELECT a.id, a.title, a.slug, a.summary, a.content, a.image_url as image, a.category, a.tags, a.status, a.is_original, a.published_at, a.created_at, a.updated_at, ad.username as author_name
       FROM articles a
       LEFT JOIN admins ad ON a.author_id = ad.id
       WHERE 1=1

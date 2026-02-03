@@ -20,7 +20,7 @@ const getHomeNews = async (req, res) => {
 
         // Get JaiHoIndia original articles (latest 5)
         const originalArticles = await query(
-            `SELECT a.id, a.title, a.slug, a.summary, a.image_url, a.category, a.published_at as publishedAt, a.author_id, 'JaiHoIndia' as author
+            `SELECT a.id, a.title, a.slug, a.summary, a.image_url as image, a.category, a.published_at as publishedAt, a.author_id, 'JaiHoIndia' as author
        FROM articles a
        WHERE a.status = 'published' AND a.is_original = TRUE
        ORDER BY a.published_at DESC
@@ -95,7 +95,7 @@ const getCategoryNews = async (req, res) => {
 
         // Get JaiHoIndia original articles for this category (if any)
         const originalArticles = await query(
-            `SELECT a.id, a.title, a.slug, a.summary, a.image_url, a.category, a.published_at as publishedAt, 'JaiHoIndia' as author
+            `SELECT a.id, a.title, a.slug, a.summary, a.image_url as image, a.category, a.published_at as publishedAt, 'JaiHoIndia' as author
        FROM articles a
        WHERE a.status = 'published' AND a.is_original = TRUE AND a.category = ?
        ORDER BY a.published_at DESC
@@ -221,7 +221,7 @@ const getArticleById = async (req, res) => {
 
         // 1. Check Database (Original Articles)
         const dbArticles = await query(
-            `SELECT a.id, a.title, a.slug, a.summary, a.content, a.image_url, a.category, a.published_at as publishedAt, a.author_id, a.is_original, 'JaiHoIndia' as author
+            `SELECT a.id, a.title, a.slug, a.summary, a.content, a.image_url as image, a.category, a.published_at as publishedAt, a.author_id, a.is_original, 'JaiHoIndia' as author
              FROM articles a
              WHERE (a.id = ? OR a.slug = ?) AND a.status = 'published'`,
             [id, id]

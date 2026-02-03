@@ -21,7 +21,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
           {/* Thumbnail */}
           <div className="flex-shrink-0 w-20 h-20 rounded overflow-hidden">
             <img
-              src={article.image || '/placeholder.svg'}
+              src={getNewsImageUrl(article.image)}
               alt={article.title}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
@@ -51,7 +51,7 @@ export function NewsCard({ article, variant = 'default' }: NewsCardProps) {
           {/* Thumbnail */}
           <div className="flex-shrink-0 w-32 md:w-40 aspect-[4/3] rounded-lg overflow-hidden">
             <img
-              src={article.image || '/placeholder.svg'}
+              src={getNewsImageUrl(article.image)}
               alt={article.title}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
