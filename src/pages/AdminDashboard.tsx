@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, LogOut, Newspaper, RefreshCw, Image as ImageIcon, LayoutDashboard, Settings } from 'lucide-react';
+import { Plus, LogOut, Newspaper, RefreshCw, Image as ImageIcon, LayoutDashboard, Settings, FileText } from 'lucide-react';
 import {
     fetchAdminArticles,
     deleteArticle,
@@ -14,6 +14,7 @@ import {
 } from '@/services/api';
 import { Trash2 } from 'lucide-react';
 import GalleryManager from '@/components/admin/GalleryManager';
+import DocumentsManager from '@/components/admin/DocumentsManager';
 
 // Simple Toggle Component (if no UI lib)
 const Toggle = ({ enabled, onToggle, disabled }: { enabled: boolean; onToggle: () => void; disabled?: boolean }) => (
@@ -37,7 +38,7 @@ export default function AdminDashboard() {
     const [refreshing, setRefreshing] = useState(false);
     const [apiEnabled, setApiEnabled] = useState(true);
     const [settingsLoading, setSettingsLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'overview' | 'gallery'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'gallery' | 'documents'>('overview');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -184,6 +185,13 @@ export default function AdminDashboard() {
                         <ImageIcon className="h-5 w-5" />
                         Gallery
                     </button>
+                    <button
+                        onClick={() => setActiveTab('documents')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === 'documents' ? 'bg-news-red text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+                    >
+                        <FileText className="h-5 w-5" />
+                        Documents
+                    </button>
                 </nav>
 
                 <div className="p-4 border-t border-slate-700">
@@ -225,6 +233,12 @@ export default function AdminDashboard() {
                             className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === 'gallery' ? 'bg-news-red text-white' : 'bg-slate-800 text-slate-400'}`}
                         >
                             Gallery
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('documents')}
+                            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === 'documents' ? 'bg-news-red text-white' : 'bg-slate-800 text-slate-400'}`}
+                        >
+                            Documents
                         </button>
                     </div>
 
@@ -381,6 +395,12 @@ export default function AdminDashboard() {
                     {activeTab === 'gallery' && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <GalleryManager />
+                        </div>
+                    )}
+
+                    {activeTab === 'documents' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <DocumentsManager />
                         </div>
                     )}
                 </div>

@@ -265,7 +265,21 @@ const forceRefresh = async (req, res) => {
 
 const getGallery = async (req, res) => {
     try {
-        const images = await query('SELECT * FROM gallery_images ORDER BY uploaded_at DESC');
+        const { type } = req.query;
+        let queryStr = 'SELECT * FROM gallery_images';
+        const params = [];
+
+        if (type === 'documents') {
+            queryStr += ' WHERE image_url LIKE ?';
+            params.push('%/uploads/documents/%');
+        } else if (type === 'gallery') {
+            queryStr += ' WHERE image_url NOT LIKE ?';
+            params.push('%/uploads/documents/%');
+        }
+
+        queryStr += ' ORDER BY uploaded_at DESC';
+
+        const images = await query(queryStr, params);
         res.json({ success: true, data: images });
     } catch (error) {
         console.error('Get gallery error:', error);

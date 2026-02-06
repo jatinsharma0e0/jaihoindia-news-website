@@ -30,4 +30,7 @@ router.get('/cache/status', getCacheStatus);
 // Public Gallery
 router.get('/gallery', require('../controllers/newsController').getGallery);
 
+// Documents
+router.get('/documents', require('../controllers/newsController').getDocuments);
+
 module.exports = router;

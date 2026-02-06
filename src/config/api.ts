@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
 
     // Gallery
     GALLERY: '/news/gallery',
+    DOCUMENTS: '/news/documents',
     ADMIN_GALLERY: '/admin/gallery',
     ADMIN_GALLERY_ITEM: (id: number) => `/admin/gallery/${id}`,
 } as const;

@@ -339,7 +339,7 @@ export const deleteArticle = async (id: number): Promise<void> => {
     await apiClient.delete(API_ENDPOINTS.ADMIN_ARTICLE(id));
 };
 
-export const uploadImage = async (file: File, type: 'articles' | 'gallery' = 'articles'): Promise<{ success: boolean; url: string }> => {
+export const uploadImage = async (file: File, type: 'articles' | 'gallery' | 'documents' = 'articles'): Promise<{ success: boolean; url: string }> => {
     const response = await apiClient.uploadFile<{ success: boolean; url: string }>(
         `${API_ENDPOINTS.ADMIN_UPLOAD}?type=${type}`,
         file
@@ -383,7 +383,27 @@ export const fetchGalleryImages = async (): Promise<GalleryImage[]> => {
     }
 };
 
+export const fetchDocuments = async (): Promise<GalleryImage[]> => {
+    try {
+        const response = await apiClient.get<GalleryImage[]>(API_ENDPOINTS.DOCUMENTS);
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch documents:', error);
+        return [];
+    }
+};
+
 // Admin Gallery Services
+export const fetchAdminGalleryImages = async (type: 'gallery' | 'documents' = 'gallery'): Promise<GalleryImage[]> => {
+    try {
+        const response = await apiClient.get<GalleryImage[]>(`${API_ENDPOINTS.ADMIN_GALLERY}?type=${type}`);
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch admin gallery images:', error);
+        return [];
+    }
+};
+
 export const addGalleryImage = async (imageUrl: string, caption?: string): Promise<GalleryImage> => {
     const response = await apiClient.post<GalleryImage>(API_ENDPOINTS.ADMIN_GALLERY, { image_url: imageUrl, caption });
     return response.data;

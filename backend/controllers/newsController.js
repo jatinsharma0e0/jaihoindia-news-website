@@ -308,7 +308,8 @@ const getArticleById = async (req, res) => {
  */
 const getGallery = async (req, res) => {
     try {
-        const images = await query('SELECT * FROM gallery_images ORDER BY uploaded_at DESC');
+        // Filter out documents from public gallery
+        const images = await query('SELECT * FROM gallery_images WHERE image_url NOT LIKE ? ORDER BY uploaded_at DESC', ['%/uploads/documents/%']);
         res.json({
             success: true,
             data: images
@@ -319,6 +320,24 @@ const getGallery = async (req, res) => {
     }
 };
 
+/**
+ * Get document images
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ */
+const getDocuments = async (req, res) => {
+    try {
+        const images = await query('SELECT * FROM gallery_images WHERE image_url LIKE ? ORDER BY uploaded_at DESC', ['%/uploads/documents/%']);
+        res.json({
+            success: true,
+            data: images
+        });
+    } catch (error) {
+        console.error('Get documents error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch documents', error: error.message });
+    }
+};
+
 module.exports = {
     getHomeNews,
     getCategoryNews,
@@ -326,4 +345,5 @@ module.exports = {
     getCacheStatus,
     getArticleById,
     getGallery,
+    getDocuments,
 };

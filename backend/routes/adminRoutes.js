@@ -27,7 +27,7 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         // Get upload type from query parameter, default to 'articles'
         const uploadType = req.query.type || 'articles';
-        const validTypes = ['articles', 'gallery'];
+        const validTypes = ['articles', 'gallery', 'documents'];
 
         // Validate upload type
         const subDir = validTypes.includes(uploadType) ? uploadType : 'articles';
@@ -83,7 +83,7 @@ router.post('/upload', upload.single('image'), (req, res) => {
 
         // Get upload type for URL construction
         const uploadType = req.query.type || 'articles';
-        const validTypes = ['articles', 'gallery'];
+        const validTypes = ['articles', 'gallery', 'documents'];
         const subDir = validTypes.includes(uploadType) ? uploadType : 'articles';
 
         // Use config.server.url or hardcode for now
