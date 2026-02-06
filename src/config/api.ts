@@ -24,6 +24,11 @@ export const API_ENDPOINTS = {
     PAGE: (slug: string) => `/pages/${slug}`,
     // Settings
     SETTINGS: '/settings',
+
+    // Gallery
+    GALLERY: '/news/gallery',
+    ADMIN_GALLERY: '/admin/gallery',
+    ADMIN_GALLERY_ITEM: (id: number) => `/admin/gallery/${id}`,
 } as const;
 
 // Request timeout (10 seconds)

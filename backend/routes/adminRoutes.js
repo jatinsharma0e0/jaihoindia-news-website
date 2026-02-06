@@ -11,6 +11,9 @@ const {
     updateArticle,
     deleteArticle,
     forceRefresh,
+    getGallery,
+    addToGallery,
+    removeFromGallery,
 } = require('../controllers/adminController');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
@@ -19,13 +22,22 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
  * All routes except login require JWT authentication
  */
 
-// Configure multer for file uploads
+// Configure multer for file uploads with dynamic subdirectories
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const uploadDir = path.join(__dirname, '..', config.upload.dir);
+        // Get upload type from query parameter, default to 'articles'
+        const uploadType = req.query.type || 'articles';
+        const validTypes = ['articles', 'gallery'];
+
+        // Validate upload type
+        const subDir = validTypes.includes(uploadType) ? uploadType : 'articles';
+        const uploadDir = path.join(__dirname, '..', config.upload.dir, subDir);
+
+        // Create directory if it doesn't exist
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
         }
+
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
@@ -69,9 +81,14 @@ router.post('/upload', upload.single('image'), (req, res) => {
             });
         }
 
+        // Get upload type for URL construction
+        const uploadType = req.query.type || 'articles';
+        const validTypes = ['articles', 'gallery'];
+        const subDir = validTypes.includes(uploadType) ? uploadType : 'articles';
+
         // Use config.server.url or hardcode for now
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
+        const fileUrl = `${baseUrl}/uploads/${subDir}/${req.file.filename}`;
 
         res.json({
             success: true,
@@ -94,5 +111,10 @@ router.post('/upload', upload.single('image'), (req, res) => {
 
 // Manual cache refresh (admin only)
 router.post('/refresh-cache', authorizeRoles('admin'), forceRefresh);
+
+// Gallery Management
+router.get('/gallery', getGallery);
+router.post('/gallery', addToGallery);
+router.delete('/gallery/:id', removeFromGallery);
 
 module.exports = router;

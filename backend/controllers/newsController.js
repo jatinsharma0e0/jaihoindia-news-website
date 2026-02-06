@@ -301,10 +301,29 @@ const getArticleById = async (req, res) => {
     }
 };
 
+/**
+ * Get gallery images
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ */
+const getGallery = async (req, res) => {
+    try {
+        const images = await query('SELECT * FROM gallery_images ORDER BY uploaded_at DESC');
+        res.json({
+            success: true,
+            data: images
+        });
+    } catch (error) {
+        console.error('Get gallery error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch gallery images', error: error.message });
+    }
+};
+
 module.exports = {
     getHomeNews,
     getCategoryNews,
     getAllNews,
     getCacheStatus,
     getArticleById,
+    getGallery,
 };

@@ -263,6 +263,53 @@ const forceRefresh = async (req, res) => {
     }
 };
 
+const getGallery = async (req, res) => {
+    try {
+        const images = await query('SELECT * FROM gallery_images ORDER BY uploaded_at DESC');
+        res.json({ success: true, data: images });
+    } catch (error) {
+        console.error('Get gallery error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch gallery', error: error.message });
+    }
+};
+
+const addToGallery = async (req, res) => {
+    try {
+        const { image_url, caption } = req.body;
+        if (!image_url) {
+            return res.status(400).json({ success: false, message: 'Image URL is required' });
+        }
+        const result = await query(
+            'INSERT INTO gallery_images (image_url, caption) VALUES (?, ?)',
+            [image_url, caption || null]
+        );
+
+        // Return the complete image object
+        const newImage = {
+            id: result.insertId,
+            image_url,
+            caption: caption || null,
+            uploaded_at: new Date().toISOString()
+        };
+
+        res.status(201).json({ success: true, message: 'Image added to gallery', data: newImage });
+    } catch (error) {
+        console.error('Add to gallery error:', error);
+        res.status(500).json({ success: false, message: 'Failed to add image', error: error.message });
+    }
+};
+
+const removeFromGallery = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await query('DELETE FROM gallery_images WHERE id = ?', [id]);
+        res.json({ success: true, message: 'Image removed from gallery' });
+    } catch (error) {
+        console.error('Remove from gallery error:', error);
+        res.status(500).json({ success: false, message: 'Failed to remove image', error: error.message });
+    }
+};
+
 module.exports = {
     login,
     getArticles,
@@ -270,4 +317,7 @@ module.exports = {
     updateArticle,
     deleteArticle,
     forceRefresh,
+    getGallery,
+    addToGallery,
+    removeFromGallery,
 };

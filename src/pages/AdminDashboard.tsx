@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, LogOut, Newspaper, RefreshCw } from 'lucide-react';
+import { Plus, LogOut, Newspaper, RefreshCw, Image as ImageIcon, LayoutDashboard, Settings } from 'lucide-react';
 import {
     fetchAdminArticles,
     deleteArticle,
@@ -12,8 +12,8 @@ import {
     fetchSettings,
     updateSetting
 } from '@/services/api';
-import { Switch } from '@/components/ui/switch'; // Assuming you have shadcn or similar, or build simple one
-import { Trash2, Power } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import GalleryManager from '@/components/admin/GalleryManager';
 
 // Simple Toggle Component (if no UI lib)
 const Toggle = ({ enabled, onToggle, disabled }: { enabled: boolean; onToggle: () => void; disabled?: boolean }) => (
@@ -37,6 +37,7 @@ export default function AdminDashboard() {
     const [refreshing, setRefreshing] = useState(false);
     const [apiEnabled, setApiEnabled] = useState(true);
     const [settingsLoading, setSettingsLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'overview' | 'gallery'>('overview');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -67,7 +68,6 @@ export default function AdminDashboard() {
         try {
             setSettingsLoading(true);
             const newValue = !apiEnabled;
-            // Optimistic update
             setApiEnabled(newValue);
             await updateSetting('enable_external_api', String(newValue));
         } catch (error) {
@@ -158,206 +158,233 @@ export default function AdminDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-900">
-            {/* Header */}
-            <header className="bg-slate-800 border-b border-slate-700">
-                <div className="container mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold">
-                                <span className="text-news-red">JaiHo</span>
-                                <span className="text-white">India</span>
-                                <span className="text-slate-400 ml-2">Admin</span>
-                            </h1>
-                        </div>
+        <div className="min-h-screen bg-slate-900 flex">
+            {/* Sidebar */}
+            <aside className="w-64 bg-slate-800 border-r border-slate-700 hidden md:flex flex-col">
+                <div className="p-6">
+                    <h1 className="text-2xl font-bold">
+                        <span className="text-news-red">JaiHo</span>
+                        <span className="text-white">India</span>
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-1">Admin Panel</p>
+                </div>
+
+                <nav className="flex-1 px-4 py-4 space-y-2">
+                    <button
+                        onClick={() => setActiveTab('overview')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === 'overview' ? 'bg-news-red text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+                    >
+                        <LayoutDashboard className="h-5 w-5" />
+                        Overview
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('gallery')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${activeTab === 'gallery' ? 'bg-news-red text-white' : 'text-slate-400 hover:bg-slate-700 hover:text-white'}`}
+                    >
+                        <ImageIcon className="h-5 w-5" />
+                        Gallery
+                    </button>
+                </nav>
+
+                <div className="p-4 border-t border-slate-700">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition"
+                    >
+                        <LogOut className="h-5 w-5" />
+                        Logout
+                    </button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto">
+                {/* Mobile Header */}
+                <header className="md:hidden bg-slate-800 border-b border-slate-700 p-4 flex items-center justify-between">
+                    <h1 className="text-xl font-bold">
+                        <span className="text-news-red">JaiHo</span>
+                        <span className="text-white">India</span>
+                        <span className="text-slate-400 ml-2">Admin</span>
+                    </h1>
+                    <button onClick={handleLogout} className="text-slate-300">
+                        <LogOut className="h-6 w-6" />
+                    </button>
+                </header>
+
+                <div className="container mx-auto px-4 py-8">
+                    {/* Tabs (Mobile only navigation) */}
+                    <div className="md:hidden flex gap-2 mb-6 overflow-x-auto pb-2">
                         <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 text-slate-300 hover:text-white transition"
+                            onClick={() => setActiveTab('overview')}
+                            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === 'overview' ? 'bg-news-red text-white' : 'bg-slate-800 text-slate-400'}`}
                         >
-                            <LogOut className="h-4 w-4" />
-                            Logout
+                            Overview
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('gallery')}
+                            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === 'gallery' ? 'bg-news-red text-white' : 'bg-slate-800 text-slate-400'}`}
+                        >
+                            Gallery
                         </button>
                     </div>
-                </div>
-            </header>
 
-            <div className="container mx-auto px-4 py-8">
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-slate-400 text-sm mb-1">Total Articles</p>
-                                <p className="text-3xl font-bold text-white">{articles.length}</p>
+                    {activeTab === 'overview' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Stats Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-slate-400 text-sm mb-1">Total Articles</p>
+                                            <p className="text-3xl font-bold text-white">{articles.length}</p>
+                                        </div>
+                                        <Newspaper className="h-10 w-10 text-news-red" />
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-slate-400 text-sm mb-1">Published</p>
+                                            <p className="text-3xl font-bold text-white">
+                                                {articles.filter(a => a.status === 'published').length}
+                                            </p>
+                                        </div>
+                                        <div className="h-10 w-10 bg-green-500/20 rounded-full flex items-center justify-center">
+                                            <span className="text-green-500 text-xl">✓</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-slate-400 text-sm mb-1">Cached News</p>
+                                            <p className="text-3xl font-bold text-white">
+                                                {cacheStatus?.totalArticles || 0}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={handleRefreshCache}
+                                            disabled={refreshing}
+                                            className="h-10 w-10 bg-blue-500/20 rounded-full flex items-center justify-center hover:bg-blue-500/30 transition disabled:opacity-50"
+                                        >
+                                            <RefreshCw className={`h-5 w-5 text-blue-500 ${refreshing ? 'animate-spin' : ''}`} />
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <Newspaper className="h-10 w-10 text-news-red" />
-                        </div>
-                    </div>
 
-                    <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-slate-400 text-sm mb-1">Published</p>
-                                <p className="text-3xl font-bold text-white">
-                                    {articles.filter(a => a.status === 'published').length}
-                                </p>
+                            {/* System Settings */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 flex flex-col justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white mb-2">API Configuration</h3>
+                                        <p className="text-slate-400 text-sm mb-4">Control external news fetching.</p>
+                                    </div>
+                                    <div className="flex items-center justify-between bg-slate-700/30 p-4 rounded-lg">
+                                        <span className="text-slate-200 font-medium">External News API</span>
+                                        <ApiToggle />
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 flex flex-col justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white mb-2 text-red-400">Danger Zone</h3>
+                                        <p className="text-slate-400 text-sm mb-4">Irreversible actions for system maintenance.</p>
+                                    </div>
+                                    <div className="flex items-center justify-between bg-red-500/10 p-4 rounded-lg border border-red-500/20">
+                                        <span className="text-red-300 font-medium">Hard Reset Cache</span>
+                                        <HardResetButton />
+                                    </div>
+                                </div>
                             </div>
-                            <div className="h-10 w-10 bg-green-500/20 rounded-full flex items-center justify-center">
-                                <span className="text-green-500 text-xl">✓</span>
+
+                            {/* Articles Section */}
+                            <div className="bg-slate-800 border border-slate-700 rounded-lg">
+                                <div className="p-6 border-b border-slate-700 flex items-center justify-between">
+                                    <h2 className="text-xl font-bold text-white">Original Articles</h2>
+                                    <Link
+                                        to="/admin/articles/new"
+                                        className="flex items-center gap-2 px-4 py-2 bg-news-red hover:bg-red-600 text-white rounded-lg transition"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        New Article
+                                    </Link>
+                                </div>
+
+                                <div className="p-6">
+                                    {articles.length === 0 ? (
+                                        <div className="text-center py-12">
+                                            <p className="text-slate-400 mb-4">No articles yet</p>
+                                            <Link
+                                                to="/admin/articles/new"
+                                                className="inline-flex items-center gap-2 px-4 py-2 bg-news-red hover:bg-red-600 text-white rounded-lg transition"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                Create First Article
+                                            </Link>
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="border-b border-slate-700">
+                                                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Title</th>
+                                                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Category</th>
+                                                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Status</th>
+                                                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Author</th>
+                                                        <th className="text-right py-3 px-4 text-slate-300 font-medium">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {articles.map((article) => (
+                                                        <tr key={article.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                                                            <td className="py-3 px-4 text-white">{article.title}</td>
+                                                            <td className="py-3 px-4 text-slate-300 capitalize">{article.category}</td>
+                                                            <td className="py-3 px-4">
+                                                                <span className={`inline-block px-2 py-1 text-xs rounded-full ${article.status === 'published'
+                                                                    ? 'bg-green-500/20 text-green-500'
+                                                                    : 'bg-yellow-500/20 text-yellow-500'
+                                                                    }`}>
+                                                                    {article.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-3 px-4 text-slate-300">{article.author}</td>
+                                                            <td className="py-3 px-4 text-right">
+                                                                <div className="flex items-center justify-end gap-2">
+                                                                    <Link
+                                                                        to={`/admin/articles/edit/${article.id}`}
+                                                                        className="px-3 py-1 text-sm bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 rounded transition"
+                                                                    >
+                                                                        Edit
+                                                                    </Link>
+                                                                    <button
+                                                                        onClick={() => article.id && handleDelete(article.id)}
+                                                                        className="px-3 py-1 text-sm bg-red-500/20 text-red-500 hover:bg-red-500/30 rounded transition"
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
-                    <div className="bg-slate-800 border border-slate-700 rounded-lg p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-slate-400 text-sm mb-1">Cached News</p>
-                                <p className="text-3xl font-bold text-white">
-                                    {cacheStatus?.totalArticles || 0}
-                                </p>
-                            </div>
-                            <button
-                                onClick={handleRefreshCache}
-                                disabled={refreshing}
-                                className="h-10 w-10 bg-blue-500/20 rounded-full flex items-center justify-center hover:bg-blue-500/30 transition disabled:opacity-50"
-                            >
-                                <RefreshCw className={`h-5 w-5 text-blue-500 ${refreshing ? 'animate-spin' : ''}`} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* System Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 flex flex-col justify-between">
-                    <div>
-                        <h3 className="text-lg font-bold text-white mb-2">API Configuration</h3>
-                        <p className="text-slate-400 text-sm mb-4">Control external news fetching.</p>
-                    </div>
-                    <div className="flex items-center justify-between bg-slate-700/30 p-4 rounded-lg">
-                        <span className="text-slate-200 font-medium">External News API</span>
-                        <ApiToggle />
-                    </div>
-                </div>
-
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 flex flex-col justify-between">
-                    <div>
-                        <h3 className="text-lg font-bold text-white mb-2 text-red-400">Danger Zone</h3>
-                        <p className="text-slate-400 text-sm mb-4">Irreversible actions for system maintenance.</p>
-                    </div>
-                    <div className="flex items-center justify-between bg-red-500/10 p-4 rounded-lg border border-red-500/20">
-                        <span className="text-red-300 font-medium">Hard Reset Cache</span>
-                        <HardResetButton />
-                    </div>
-                </div>
-            </div>
-
-            {/* Articles Section */}
-            <div className="bg-slate-800 border border-slate-700 rounded-lg">
-                <div className="p-6 border-b border-slate-700 flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-white">Original Articles</h2>
-                    <Link
-                        to="/admin/articles/new"
-                        className="flex items-center gap-2 px-4 py-2 bg-news-red hover:bg-red-600 text-white rounded-lg transition"
-                    >
-                        <Plus className="h-4 w-4" />
-                        New Article
-                    </Link>
-                </div>
-
-                <div className="p-6">
-                    {articles.length === 0 ? (
-                        <div className="text-center py-12">
-                            <p className="text-slate-400 mb-4">No articles yet</p>
-                            <Link
-                                to="/admin/articles/new"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-news-red hover:bg-red-600 text-white rounded-lg transition"
-                            >
-                                <Plus className="h-4 w-4" />
-                                Create First Article
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-slate-700">
-                                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Title</th>
-                                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Category</th>
-                                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Status</th>
-                                        <th className="text-left py-3 px-4 text-slate-300 font-medium">Author</th>
-                                        <th className="text-right py-3 px-4 text-slate-300 font-medium">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {articles.map((article) => (
-                                        <tr key={article.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
-                                            <td className="py-3 px-4 text-white">{article.title}</td>
-                                            <td className="py-3 px-4 text-slate-300 capitalize">{article.category}</td>
-                                            <td className="py-3 px-4">
-                                                <span className={`inline-block px-2 py-1 text-xs rounded-full ${article.status === 'published'
-                                                    ? 'bg-green-500/20 text-green-500'
-                                                    : 'bg-yellow-500/20 text-yellow-500'
-                                                    }`}>
-                                                    {article.status}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 px-4 text-slate-300">{article.author}</td>
-                                            <td className="py-3 px-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Link
-                                                        to={`/admin/articles/edit/${article.id}`}
-                                                        className="px-3 py-1 text-sm bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 rounded transition"
-                                                    >
-                                                        Edit
-                                                    </Link>
-                                                    <button
-                                                        onClick={() => article.id && handleDelete(article.id)}
-                                                        className="px-3 py-1 text-sm bg-red-500/20 text-red-500 hover:bg-red-500/30 rounded transition"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                    {activeTab === 'gallery' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <GalleryManager />
                         </div>
                     )}
                 </div>
-            </div>
-
-            {/* Cache Status */}
-            {cacheStatus && (
-                <div className="mt-6 bg-slate-800 border border-slate-700 rounded-lg p-6">
-                    <h3 className="text-lg font-bold text-white mb-4">Cache Status</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                            <p className="text-slate-400 text-sm">Status</p>
-                            <p className={`text-sm font-medium ${cacheStatus.isValid ? 'text-green-500' : 'text-red-500'}`}>
-                                {cacheStatus.isValid ? 'Valid' : 'Expired'}
-                            </p>
-                        </div>
-                        <div>
-                            <p className="text-slate-400 text-sm">Cache Age</p>
-                            <p className="text-slate-300 text-sm">{Math.floor(cacheStatus.cacheAge / 60)} min</p>
-                        </div>
-                        <div>
-                            <p className="text-slate-400 text-sm">Expires In</p>
-                            <p className="text-slate-300 text-sm">{Math.floor(cacheStatus.expiresIn / 60)} min</p>
-                        </div>
-                        <div>
-                            <p className="text-slate-400 text-sm">Last Updated</p>
-                            <p className="text-slate-300 text-sm">
-                                {new Date(cacheStatus.lastUpdated).toLocaleTimeString()}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
+            </main>
         </div>
-
     );
 }

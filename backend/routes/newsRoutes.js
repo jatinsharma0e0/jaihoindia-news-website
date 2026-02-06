@@ -27,4 +27,7 @@ router.get('/article/:id', require('../controllers/newsController').getArticleBy
 // Cache status (for debugging/monitoring)
 router.get('/cache/status', getCacheStatus);
 
+// Public Gallery
+router.get('/gallery', require('../controllers/newsController').getGallery);
+
 module.exports = router;
