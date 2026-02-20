@@ -24,8 +24,27 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
-// CORS configuration
-app.use(cors(config.cors));
+// CORS — only allow explicitly listed origins
+const allowedOrigins = [
+    process.env.FRONTEND_URL,          // Vercel prod URL (set in Render env)
+    'http://localhost:5173',            // Vite dev server
+    'http://localhost:3000',
+    'http://localhost:8080',
+].filter(Boolean);                      // drop undefined if FRONTEND_URL not set yet
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow server-to-server requests (no origin header) and listed origins
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`CORS blocked: ${origin}`));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // Body parser middleware
 app.use(bodyParser.json());
