@@ -1,44 +1,49 @@
-// API Base URL — set VITE_BACKEND_URL to your Render backend URL in Vercel env vars
-const isProd = import.meta.env.PROD;
-export const API_BASE_URL = isProd
-    ? (import.meta.env.VITE_BACKEND_URL || 'https://jaihoindia-api.onrender.com') + '/api'
-    : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+// ─── Backend Base URL ─────────────────────────────────────────────────────────
+// Priority: VITE_BACKEND_URL env var → fallback to localhost for dev
+// Set VITE_BACKEND_URL in Vercel dashboard → Settings → Environment Variables
+// Example: VITE_BACKEND_URL=https://jaihoindia-backend.onrender.com
 
-// API Endpoints
+export const BACKEND_URL =
+    import.meta.env.VITE_BACKEND_URL?.replace(/\/$/, '')   // strip trailing slash
+    || 'http://localhost:5000';
+
+export const API_BASE_URL = `${BACKEND_URL}/api`;
+
+// Debug log — confirms the env var loaded correctly (remove after verifying deploy)
+if (import.meta.env.DEV || import.meta.env.VITE_DEBUG === 'true') {
+    console.log('[API] Backend URL:', BACKEND_URL);
+}
+
+// ─── API Endpoints ────────────────────────────────────────────────────────────
 export const API_ENDPOINTS = {
-    // News endpoints
+    // News
     HOME: '/news/home',
     CATEGORY: (category: string) => `/news/category/${category}`,
     ALL_NEWS: '/news/all',
     CACHE_STATUS: '/news/cache/status',
-
-    // Single Article
     ARTICLE: (id: string | number) => `/news/article/${id}`,
+    GALLERY: '/news/gallery',
+    DOCUMENTS: '/news/documents',
+    TEAM: '/news/team-members',
 
-    // Admin endpoints
+    // Admin
     ADMIN_LOGIN: '/admin/login',
     ADMIN_ARTICLES: '/admin/articles',
     ADMIN_ARTICLE: (id: string | number) => `/admin/articles/${id}`,
     ADMIN_UPLOAD: '/admin/upload',
     ADMIN_REFRESH_CACHE: '/admin/refresh-cache',
-
-    // Pages endpoints
-    PAGES: '/pages',
-    PAGE: (slug: string) => `/pages/${slug}`,
-    // Settings
-    SETTINGS: '/settings',
-
-    // Gallery
-    GALLERY: '/news/gallery',
-    DOCUMENTS: '/news/documents',
-    TEAM: '/news/team-members',
     ADMIN_GALLERY: '/admin/gallery',
     ADMIN_GALLERY_ITEM: (id: string | number) => `/admin/gallery/${id}`,
     ADMIN_ARRANGEMENT: (section: string) => `/admin/arrangement/${section}`,
+
+    // Pages / Settings
+    PAGES: '/pages',
+    PAGE: (slug: string) => `/pages/${slug}`,
+    SETTINGS: '/settings',
 } as const;
 
-// Request timeout (10 seconds)
-export const REQUEST_TIMEOUT = 10000;
+// Request timeout — 30 s to handle Render cold-start (~20–25 s on free tier)
+export const REQUEST_TIMEOUT = 30000;
 
 // Default pagination
 export const DEFAULT_PAGE_SIZE = 20;

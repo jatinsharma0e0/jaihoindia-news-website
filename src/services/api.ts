@@ -102,7 +102,8 @@ class ApiClient {
 
     private async request<T>(
         endpoint: string,
-        options: RequestInit = {}
+        options: RequestInit = {},
+        retries = 1             // one auto-retry for Render cold-start
     ): Promise<ApiResponse<T>> {
         const url = `${this.baseUrl}${endpoint}`;
 
@@ -135,7 +136,20 @@ class ApiClient {
             return data;
         } catch (error) {
             clearTimeout(timeoutId);
-            console.error(`API request failed for ${endpoint}:`, error);
+
+            // Retry once on network/timeout errors (covers Render cold-start)
+            if (retries > 0) {
+                const isNetworkError =
+                    error instanceof TypeError ||
+                    (error instanceof Error && error.name === 'AbortError');
+
+                if (isNetworkError) {
+                    console.warn(`[API] Request to ${endpoint} timed out or failed — retrying (${retries} left)...`);
+                    return this.request<T>(endpoint, options, retries - 1);
+                }
+            }
+
+            console.error(`[API] Request failed for ${endpoint}:`, error);
             throw error;
         }
     }
