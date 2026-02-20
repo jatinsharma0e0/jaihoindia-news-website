@@ -1,20 +1,12 @@
 {
     "version": 2,
-    "buildCommand": "npm run build",
-    "outputDirectory": "dist",
-    "builds": [
-        {
-            "src": "backend/server.js",
-            "use": "@vercel/node"
-        },
-        {
-            "src": "vite.config.ts",
-            "use": "@vercel/static-build",
-            "config": {
-                "distDir": "dist"
-            }
+    "functions": {
+        "backend/server.js": {
+            "runtime": "@vercel/node",
+            "memory": 1024,
+            "maxDuration": 10
         }
-    ],
+    },
     "rewrites": [
         {
             "source": "/api/(.*)",
