@@ -204,48 +204,38 @@ app.use(notFound);
 // Global error handler
 app.use(errorHandler);
 
-// Start server (local dev only — Vercel invokes the export directly)
+// Start server
 const startServer = async () => {
     try {
         // Test Supabase connection
         const dbConnected = await testConnection();
-
         if (!dbConnected) {
             console.warn('⚠️ Supabase connection failed - some features may not work');
         }
 
-        // node-cron only works in persistent processes (not on Vercel)
-        // Vercel Cron (in vercel.json) hits /api/admin/refresh-cache instead.
-        if (!process.env.VERCEL) {
-            console.log('\n📡 Initializing news cache refresh system...');
-            initRefreshJob();
-        }
+        // Initialize news cache refresh cron job
+        console.log('\n📡 Initializing news cache refresh system...');
+        initRefreshJob();
 
         // Start Express server
         const PORT = config.server.port;
-        if (!process.env.VERCEL) {
-            app.listen(PORT, () => {
-                console.log(`\n${'='.repeat(60)}`);
-                console.log(`✅ JaiHoIndia News Backend Server Started`);
-                console.log(`${'='.repeat(60)}`);
-                console.log(`🌐 Server running on: http://localhost:${PORT}`);
-                console.log(`📝 Environment: ${config.server.nodeEnv}`);
-                console.log(`⏰ Cache refresh interval: ${config.cache.refreshIntervalMinutes} minutes`);
-                console.log(`📦 Database: ${dbConnected ? 'Supabase Connected' : 'Supabase Disconnected'}`);
-                console.log(`${'='.repeat(60)}\n`);
-            });
-        }
-
+        app.listen(PORT, () => {
+            console.log(`\n${'='.repeat(60)}`);
+            console.log(`✅ JaiHoIndia News Backend Server Started`);
+            console.log(`${'='.repeat(60)}`);
+            console.log(`🌐 Server running on port: ${PORT}`);
+            console.log(`📝 Environment: ${config.server.nodeEnv}`);
+            console.log(`⏰ Cache refresh interval: ${config.cache.refreshIntervalMinutes} minutes`);
+            console.log(`📦 Database: ${dbConnected ? 'Supabase Connected' : 'Supabase Disconnected'}`);
+            console.log(`${'='.repeat(60)}\n`);
+        });
     } catch (error) {
         console.error('❌ Server startup error:', error);
         process.exit(1);
     }
 };
 
-// Only run listen() in local dev — Vercel manages its own invocation model
-if (!process.env.VERCEL) {
-    startServer();
-}
+startServer();
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {

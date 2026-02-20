@@ -1,19 +1,19 @@
-// API Base URL — in production, API is on the same origin via Vercel rewrites
+// API Base URL — set VITE_BACKEND_URL to your Render backend URL in Vercel env vars
 const isProd = import.meta.env.PROD;
 export const API_BASE_URL = isProd
-    ? `${window.location.origin}/api`
+    ? (import.meta.env.VITE_BACKEND_URL || 'https://jaihoindia-api.onrender.com') + '/api'
     : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
 
 // API Endpoints
 export const API_ENDPOINTS = {
     // News endpoints
     HOME: '/news/home',
-    CATEGORY: (category: string) => `/news/category?category=${category}`,
+    CATEGORY: (category: string) => `/news/category/${category}`,
     ALL_NEWS: '/news/all',
     CACHE_STATUS: '/news/cache/status',
 
     // Single Article
-    ARTICLE: (id: string | number) => `/news/article?id=${id}`,
+    ARTICLE: (id: string | number) => `/news/article/${id}`,
 
     // Admin endpoints
     ADMIN_LOGIN: '/admin/login',
