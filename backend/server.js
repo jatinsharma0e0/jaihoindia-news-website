@@ -5,7 +5,7 @@ const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const path = require('path');
 const config = require('./config/config');
-const db = require('./config/db');
+const { testConnection } = require('./config/supabase');
 const { initRefreshJob } = require('./jobs/refreshJob');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 
@@ -31,14 +31,14 @@ app.use(cors(config.cors));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve static files (uploads)
+// Serve static files (fallback for local uploads if any exist)
 app.use('/uploads', express.static(path.join(__dirname, config.upload.dir)));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({
         success: true,
-        message: 'JaiHoIndia News Backend is running',
+        message: 'JaiHoIndia News Backend is running (Supabase Powered)',
         timestamp: new Date().toISOString(),
     });
 });
@@ -167,7 +167,7 @@ app.get('/', (req, res) => {
             
             <div class="badges">
                 <div class="badge">🚀 Node.js Express</div>
-                <div class="badge">🗄️ MySQL Integrated</div>
+                <div class="badge">⚡ Supabase Powered</div>
                 <div class="badge">⚡ JSON Caching</div>
                 <div class="badge">🛡️ JWT Auth</div>
             </div>
@@ -207,11 +207,11 @@ app.use(errorHandler);
 // Start server
 const startServer = async () => {
     try {
-        // Test database connection
-        const dbConnected = await db.testConnection();
+        // Test Supabase connection
+        const dbConnected = await testConnection();
 
         if (!dbConnected) {
-            console.warn('⚠️ Database connection failed - some features may not work');
+            console.warn('⚠️ Supabase connection failed - some features may not work');
         }
 
         // Initialize cron job for cache refresh
@@ -227,16 +227,7 @@ const startServer = async () => {
             console.log(`🌐 Server running on: http://localhost:${PORT}`);
             console.log(`📝 Environment: ${config.server.nodeEnv}`);
             console.log(`⏰ Cache refresh interval: ${config.cache.refreshIntervalMinutes} minutes`);
-            console.log(`📦 Database: ${dbConnected ? 'Connected' : 'Disconnected'}`);
-            console.log(`${'='.repeat(60)}\n`);
-            console.log('Available endpoints:');
-            console.log('  - GET  /health');
-            console.log('  - GET  /api/news/home');
-            console.log('  - GET  /api/news/category/:category');
-            console.log('  - GET  /api/news/all');
-            console.log('  - POST /api/admin/login');
-            console.log('  - GET  /api/pages/:slug');
-            console.log('  - GET  /api/youtube/videos');
+            console.log(`📦 Database: ${dbConnected ? 'Supabase Connected' : 'Supabase Disconnected'}`);
             console.log(`${'='.repeat(60)}\n`);
         });
 

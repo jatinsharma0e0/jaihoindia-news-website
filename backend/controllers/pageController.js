@@ -1,4 +1,4 @@
-const { query } = require('../config/db');
+const { supabase } = require('../config/supabase');
 
 /**
  * Get page by slug
@@ -9,12 +9,15 @@ const getPage = async (req, res) => {
     try {
         const { slug } = req.params;
 
-        const pages = await query(
-            'SELECT * FROM pages WHERE slug = ? AND is_active = TRUE',
-            [slug]
-        );
+        const { data: pages, error } = await supabase
+            .from('pages')
+            .select('*')
+            .eq('slug', slug)
+            .eq('is_active', true);
 
-        if (pages.length === 0) {
+        if (error) throw error;
+
+        if (!pages || pages.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Page not found',
@@ -43,9 +46,12 @@ const getPage = async (req, res) => {
  */
 const getAllPages = async (req, res) => {
     try {
-        const pages = await query(
-            'SELECT id, slug, title, meta_description, is_active, updated_at FROM pages WHERE is_active = TRUE'
-        );
+        const { data: pages, error } = await supabase
+            .from('pages')
+            .select('id, slug, title, meta_description, is_active, updated_at')
+            .eq('is_active', true);
+
+        if (error) throw error;
 
         res.json({
             success: true,
@@ -71,12 +77,14 @@ const getSetting = async (req, res) => {
     try {
         const { key } = req.params;
 
-        const settings = await query(
-            'SELECT * FROM settings WHERE setting_key = ?',
-            [key]
-        );
+        const { data: settings, error } = await supabase
+            .from('settings')
+            .select('*')
+            .eq('setting_key', key);
 
-        if (settings.length === 0) {
+        if (error) throw error;
+
+        if (!settings || settings.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Setting not found',
@@ -105,7 +113,11 @@ const getSetting = async (req, res) => {
  */
 const getAllSettings = async (req, res) => {
     try {
-        const settings = await query('SELECT * FROM settings');
+        const { data: settings, error } = await supabase
+            .from('settings')
+            .select('*');
+
+        if (error) throw error;
 
         // Convert to key-value object
         const settingsObj = {};

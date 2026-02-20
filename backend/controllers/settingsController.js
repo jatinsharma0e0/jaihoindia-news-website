@@ -1,4 +1,4 @@
-const { query } = require('../config/db');
+const { supabase } = require('../config/supabase');
 
 /**
  * Get all system settings
@@ -7,7 +7,12 @@ const { query } = require('../config/db');
  */
 const getSettings = async (req, res) => {
     try {
-        const settings = await query('SELECT * FROM settings ORDER BY setting_key');
+        const { data: settings, error } = await supabase
+            .from('settings')
+            .select('*')
+            .order('setting_key');
+
+        if (error) throw error;
 
         // Convert array to object for easier frontend consumption
         const settingsMap = {};
@@ -46,11 +51,18 @@ const updateSetting = async (req, res) => {
             });
         }
 
-        // Check if setting exists
-        await query(
-            'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?, updated_at = NOW()',
-            [key, String(value), String(value)]
-        );
+        // Use upsert in Supabase to handle both insert and update
+        const { error } = await supabase
+            .from('settings')
+            .upsert({
+                setting_key: key,
+                setting_value: String(value),
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'setting_key'
+            });
+
+        if (error) throw error;
 
         res.json({
             success: true,

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Loader2, FileText, CheckSquare, Square, XCircle, Trash2 } from 'lucide-react';
+import { Plus, Loader2, Users, CheckSquare, Square, XCircle, Trash2 } from 'lucide-react';
 import {
     fetchAdminGalleryImages,
-    addGalleryImage,
-    deleteGalleryImage,
+    addTeamMember,
+    deleteTeamMember,
     bulkDeleteGalleryItems,
     fetchArrangement,
     saveArrangement,
@@ -16,8 +16,8 @@ import { toast } from 'sonner';
 import ArrangementToolbar, { type SortMode } from './ArrangementToolbar';
 import SortableImageGrid from './SortableImageGrid';
 
-export default function DocumentsManager() {
-    const [documents, setDocuments] = useState<GalleryImage[]>([]);
+export default function TeamManager() {
+    const [teamMembers, setTeamMembers] = useState<GalleryImage[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [selected, setSelected] = useState<Set<string | number>>(new Set());
@@ -26,7 +26,7 @@ export default function DocumentsManager() {
     const [hasUnsavedOrder, setHasUnsavedOrder] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
-    useEffect(() => { loadDocuments(); }, []);
+    useEffect(() => { loadTeamMembers(); }, []);
 
     const applySort = useCallback((items: GalleryImage[], mode: SortMode, savedOrder: (string | number)[] | null = null): GalleryImage[] => {
         const arr = [...items];
@@ -41,17 +41,17 @@ export default function DocumentsManager() {
         return arr;
     }, []);
 
-    const loadDocuments = async () => {
+    const loadTeamMembers = async () => {
         try {
             const [data, savedOrder] = await Promise.all([
-                fetchAdminGalleryImages('documents'),
-                fetchArrangement('documents').catch(() => null),
+                fetchAdminGalleryImages('team'),
+                fetchArrangement('team').catch(() => null),
             ]);
             const mode: SortMode = savedOrder ? 'custom' : 'newest';
             setSortMode(mode);
-            setDocuments(applySort(data, mode, savedOrder));
+            setTeamMembers(applySort(data, mode, savedOrder));
         } catch {
-            toast.error('Failed to load documents');
+            toast.error('Failed to load team members');
         } finally {
             setLoading(false);
         }
@@ -60,20 +60,20 @@ export default function DocumentsManager() {
     const handleSortModeChange = (mode: SortMode) => {
         setSortMode(mode);
         setHasUnsavedOrder(false);
-        setDocuments(prev => applySort(prev, mode));
+        setTeamMembers(prev => applySort(prev, mode));
     };
 
-    const handleReorder = (newDocs: GalleryImage[]) => {
-        setDocuments(newDocs);
+    const handleReorder = (newMembers: GalleryImage[]) => {
+        setTeamMembers(newMembers);
         setHasUnsavedOrder(true);
     };
 
     const handleSaveOrder = async () => {
         setIsSaving(true);
         try {
-            await saveArrangement('documents', documents.map(d => d.id));
+            await saveArrangement('team', teamMembers.map(m => m.id));
             setHasUnsavedOrder(false);
-            toast.success('Documents order saved');
+            toast.success('Team order saved');
         } catch {
             toast.error('Failed to save order');
         } finally {
@@ -85,19 +85,19 @@ export default function DocumentsManager() {
         const files = e.target.files;
         if (!files || files.length === 0) return;
         setUploading(true);
-        const newDocs: GalleryImage[] = [];
+        const newMembers: GalleryImage[] = [];
         let errorCount = 0;
         try {
             for (let i = 0; i < files.length; i++) {
                 try {
-                    const { url } = await uploadImage(files[i], 'documents');
-                    const doc = await addGalleryImage(url);
-                    newDocs.push(doc);
+                    const { url } = await uploadImage(files[i], 'team');
+                    const member = await addTeamMember(url);
+                    newMembers.push(member);
                 } catch { errorCount++; }
             }
-            if (newDocs.length > 0) {
-                setDocuments(prev => [...newDocs, ...prev]);
-                toast.success(`Uploaded ${newDocs.length} document${newDocs.length !== 1 ? 's' : ''}`);
+            if (newMembers.length > 0) {
+                setTeamMembers(prev => [...newMembers, ...prev]);
+                toast.success(`Uploaded ${newMembers.length} team member${newMembers.length !== 1 ? 's' : ''}`);
                 if (sortMode === 'custom') setHasUnsavedOrder(true);
             }
             if (errorCount > 0) toast.error(`Failed to upload ${errorCount} file${errorCount !== 1 ? 's' : ''}`);
@@ -106,13 +106,13 @@ export default function DocumentsManager() {
     };
 
     const handleDelete = async (id: string | number) => {
-        if (!confirm('Remove this document?')) return;
+        if (!confirm('Remove this team member?')) return;
         try {
-            await deleteGalleryImage(id);
-            setDocuments(prev => prev.filter(d => d.id !== id));
+            await deleteTeamMember(id);
+            setTeamMembers(prev => prev.filter(m => m.id !== id));
             setSelected(prev => { const s = new Set(prev); s.delete(id); return s; });
-            toast.success('Document removed');
-        } catch { toast.error('Failed to remove document'); }
+            toast.success('Team member removed');
+        } catch { toast.error('Failed to remove team member'); }
     };
 
     const toggleSelect = (id: string | number) => {
@@ -120,32 +120,32 @@ export default function DocumentsManager() {
     };
 
     const toggleSelectAll = () => {
-        setSelected(selected.size === documents.length ? new Set() : new Set(documents.map(d => d.id)));
+        setSelected(selected.size === teamMembers.length ? new Set() : new Set(teamMembers.map(m => m.id)));
     };
 
     const handleBulkDelete = async () => {
-        if (!selected.size || !confirm(`Delete ${selected.size} selected document${selected.size !== 1 ? 's' : ''}?`)) return;
+        if (!selected.size || !confirm(`Remove ${selected.size} selected team member${selected.size !== 1 ? 's' : ''}?`)) return;
         setBulkDeleting(true);
         try {
             await bulkDeleteGalleryItems(Array.from(selected));
-            setDocuments(prev => prev.filter(d => !selected.has(d.id)));
+            setTeamMembers(prev => prev.filter(m => !selected.has(m.id)));
             setSelected(new Set());
-            toast.success(`Removed ${selected.size} document${selected.size !== 1 ? 's' : ''} from storage`);
+            toast.success(`Removed ${selected.size} team member${selected.size !== 1 ? 's' : ''} from storage`);
         } catch { toast.error('Bulk delete failed'); }
         finally { setBulkDeleting(false); }
     };
 
-    const allSelected = documents.length > 0 && selected.size === documents.length;
+    const allSelected = teamMembers.length > 0 && selected.size === teamMembers.length;
 
-    if (loading) return <div className="p-8 text-center text-slate-400">Loading documents…</div>;
+    if (loading) return <div className="p-8 text-center text-slate-400">Loading team members…</div>;
 
     return (
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h2 className="text-2xl font-bold text-white">Documents Management</h2>
-                    <p className="text-slate-400">Manage official documents displayed on the Documents page</p>
+                    <h2 className="text-2xl font-bold text-white">Team Management</h2>
+                    <p className="text-slate-400">Manage team photos displayed on the Team page</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     {selected.size > 0 && (
@@ -156,14 +156,14 @@ export default function DocumentsManager() {
                             </Button>
                             <Button variant="destructive" size="sm" onClick={handleBulkDelete} disabled={bulkDeleting} className="bg-red-600 hover:bg-red-700">
                                 {bulkDeleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-                                {bulkDeleting ? 'Deleting…' : `Delete ${selected.size}`}
+                                {bulkDeleting ? 'Removing…' : `Remove ${selected.size}`}
                             </Button>
                         </>
                     )}
-                    <Input type="file" id="document-upload" className="hidden" accept="image/*" multiple onChange={handleUpload} disabled={uploading} />
-                    <Button disabled={uploading} onClick={() => document.getElementById('document-upload')?.click()} className="bg-news-red hover:bg-red-700 text-white">
+                    <Input type="file" id="team-upload" className="hidden" accept="image/*" multiple onChange={handleUpload} disabled={uploading} />
+                    <Button disabled={uploading} onClick={() => document.getElementById('team-upload')?.click()} className="bg-news-red hover:bg-red-700 text-white">
                         {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                        {uploading ? 'Uploading…' : 'Add Documents'}
+                        {uploading ? 'Uploading…' : 'Add Team Members'}
                     </Button>
                 </div>
             </div>
@@ -178,7 +178,7 @@ export default function DocumentsManager() {
             />
 
             {/* Select All */}
-            {documents.length > 0 && (
+            {teamMembers.length > 0 && (
                 <button onClick={toggleSelectAll} className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors px-1">
                     {allSelected ? <CheckSquare className="w-4 h-4 text-news-red" /> : <Square className="w-4 h-4" />}
                     {allSelected ? 'Deselect All' : 'Select All'}
@@ -187,11 +187,11 @@ export default function DocumentsManager() {
 
             {/* Sortable grid */}
             <SortableImageGrid
-                images={documents}
+                images={teamMembers}
                 sortMode={sortMode}
                 selected={selected}
-                overlayIcon={<FileText className="w-6 h-6" />}
-                emptyMessage="No documents uploaded yet"
+                overlayIcon={<Users className="w-6 h-6" />}
+                emptyMessage="No team members uploaded yet"
                 onReorder={handleReorder}
                 onToggleSelect={toggleSelect}
                 onDelete={handleDelete}

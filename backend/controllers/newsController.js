@@ -1,5 +1,5 @@
 const { getCachedNews, getCacheStats, loadCache } = require('../utils/cache');
-const { query } = require('../config/db');
+const { supabase } = require('../config/supabase');
 
 /**
  * Get home page news (breaking + category previews)
@@ -8,9 +8,14 @@ const { query } = require('../config/db');
  */
 const getHomeNews = async (req, res) => {
     try {
-        // Check API setting
-        const settings = await query('SELECT setting_value FROM settings WHERE setting_key = "enable_external_api"');
-        const apiEnabled = settings.length > 0 ? settings[0].setting_value === 'true' : true;
+        // Check API setting from Supabase
+        const { data: settings, error: settingsError } = await supabase
+            .from('settings')
+            .select('setting_value')
+            .eq('setting_key', 'enable_external_api');
+
+        if (settingsError) throw settingsError;
+        const apiEnabled = settings && settings.length > 0 ? settings[0].setting_value === 'true' : true;
 
         // Get cached news (only if enabled)
         const breakingNews = apiEnabled ? getCachedNews('breaking', 1, 10) : { articles: [] };
@@ -18,14 +23,33 @@ const getHomeNews = async (req, res) => {
         const sports = apiEnabled ? getCachedNews('sports', 1, 5) : { articles: [] };
         const technology = apiEnabled ? getCachedNews('technology', 1, 5) : { articles: [] };
 
-        // Get JaiHoIndia original articles (latest 5)
-        const originalArticles = await query(
-            `SELECT a.id, a.title, a.slug, a.summary, a.image_url as image, a.category, a.published_at as publishedAt, a.author_id, 'JaiHoIndia' as author
-       FROM articles a
-       WHERE a.status = 'published' AND a.is_original = TRUE
-       ORDER BY a.published_at DESC
-       LIMIT 5`
-        );
+        // Get JaiHoIndia original articles (latest 5) from Supabase
+        const { data: originalArticles, error: articlesError } = await supabase
+            .from('articles')
+            .select(`
+                id, 
+                title, 
+                slug, 
+                summary, 
+                image_url, 
+                category, 
+                published_at, 
+                author_id
+            `)
+            .eq('status', 'published')
+            .eq('is_original', true)
+            .order('published_at', { ascending: false })
+            .limit(5);
+
+        if (articlesError) throw articlesError;
+
+        // Format to match frontend expectations
+        const formattedOriginal = originalArticles.map(a => ({
+            ...a,
+            image: a.image_url,
+            publishedAt: a.published_at,
+            author: 'JaiHoIndia'
+        }));
 
         // Get cache stats
         const cacheStats = getCacheStats();
@@ -39,7 +63,7 @@ const getHomeNews = async (req, res) => {
                     sports: sports?.articles || [],
                     technology: technology?.articles || [],
                 },
-                originalArticles: originalArticles || [],
+                originalArticles: formattedOriginal || [],
             },
             meta: {
                 lastUpdated: cacheStats?.lastUpdated || null,
@@ -70,8 +94,13 @@ const getCategoryNews = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
 
         // Check API setting
-        const settings = await query('SELECT setting_value FROM settings WHERE setting_key = "enable_external_api"');
-        const apiEnabled = settings.length > 0 ? settings[0].setting_value === 'true' : true;
+        const { data: settings, error: settingsError } = await supabase
+            .from('settings')
+            .select('setting_value')
+            .eq('setting_key', 'enable_external_api');
+
+        if (settingsError) throw settingsError;
+        const apiEnabled = settings && settings.length > 0 ? settings[0].setting_value === 'true' : true;
 
         // Get cached news for category (only if enabled)
         let cachedNews = null;
@@ -93,22 +122,31 @@ const getCategoryNews = async (req, res) => {
             });
         }
 
-        // Get JaiHoIndia original articles for this category (if any)
-        const originalArticles = await query(
-            `SELECT a.id, a.title, a.slug, a.summary, a.image_url as image, a.category, a.published_at as publishedAt, 'JaiHoIndia' as author
-       FROM articles a
-       WHERE a.status = 'published' AND a.is_original = TRUE AND a.category = ?
-       ORDER BY a.published_at DESC
-       LIMIT 5`,
-            [category]
-        );
+        // Get JaiHoIndia original articles for this category from Supabase
+        const { data: originalArticles, error: articlesError } = await supabase
+            .from('articles')
+            .select('id, title, slug, summary, image_url, category, published_at')
+            .eq('status', 'published')
+            .eq('is_original', true)
+            .eq('category', category)
+            .order('published_at', { ascending: false })
+            .limit(5);
+
+        if (articlesError) throw articlesError;
+
+        const formattedOriginal = originalArticles.map(a => ({
+            ...a,
+            image: a.image_url,
+            publishedAt: a.published_at,
+            author: 'JaiHoIndia'
+        }));
 
         res.json({
             success: true,
             category: category,
             data: {
                 aggregatedNews: cachedNews.articles,
-                originalArticles: originalArticles || [],
+                originalArticles: formattedOriginal || [],
             },
             pagination: cachedNews.pagination,
             meta: {
@@ -138,8 +176,13 @@ const getAllNews = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
 
         // Check API setting
-        const settings = await query('SELECT setting_value FROM settings WHERE setting_key = "enable_external_api"');
-        const apiEnabled = settings.length > 0 ? settings[0].setting_value === 'true' : true;
+        const { data: settings, error: settingsError } = await supabase
+            .from('settings')
+            .select('setting_value')
+            .eq('setting_key', 'enable_external_api');
+
+        if (settingsError) throw settingsError;
+        const apiEnabled = settings && settings.length > 0 ? settings[0].setting_value === 'true' : true;
 
         let cachedNews = null;
         if (apiEnabled) {
@@ -211,7 +254,7 @@ const getCacheStatus = (req, res) => {
 };
 
 /**
- * Get single article by ID (checks DB first, then Cache)
+ * Get single article by ID (checks Supabase first, then Cache)
  * @param {Object} req - Express request
  * @param {Object} res - Express response
  */
@@ -219,44 +262,55 @@ const getArticleById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // 1. Check Database (Original Articles)
-        const dbArticles = await query(
-            `SELECT a.id, a.title, a.slug, a.summary, a.content, a.image_url as image, a.category, a.published_at as publishedAt, a.author_id, a.is_original, 'JaiHoIndia' as author
-             FROM articles a
-             WHERE (a.id = ? OR a.slug = ?) AND a.status = 'published'`,
-            [id, id]
-        );
+        // 1. Check Supabase (Original Articles)
+        // We check by ID or Slug. PostgreSQL uses uuid for ID.
+        let articleQuery = supabase
+            .from('articles')
+            .select(`
+                id, title, slug, summary, content, image_url, category, published_at, author_id, is_original
+            `)
+            .eq('status', 'published');
+
+        // Check if ID is a valid UUID to avoid PostgreSQL errors
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
+        if (isUuid) {
+            articleQuery = articleQuery.or(`id.eq.${id},slug.eq.${id}`);
+        } else {
+            articleQuery = articleQuery.eq('slug', id);
+        }
+
+        const { data: dbArticles, error: dbError } = await articleQuery;
+
+        if (dbError) throw dbError;
 
         let article = null;
         let isOriginal = false;
         let category = null;
 
         if (dbArticles && dbArticles.length > 0) {
-            article = dbArticles[0];
+            const rawArticle = dbArticles[0];
+            article = {
+                ...rawArticle,
+                image: rawArticle.image_url,
+                publishedAt: rawArticle.published_at,
+                author: 'JaiHoIndia'
+            };
             isOriginal = true;
             category = article.category;
-            console.log(`✅ Found article ${id} in Database`);
+            console.log(`✅ Found article ${id} in Supabase`);
         } else {
             // 2. Check Cache
             const cache = loadCache();
-            console.log(`[DEBUG] Cache loaded. Items: ${cache?.data?.length || 0}`);
 
             if (cache && cache.data) {
-                // Find by ID
+                // Find by ID or matching identifier
                 article = cache.data.find(a => a.id && String(a.id) === String(id));
 
                 if (article) {
                     category = article.category;
                     console.log(`✅ Found article ${id} in Cache`);
-                } else {
-                    console.warn(`⚠️ Article ${id} NOT found in cache (checked ${cache.data.length} items)`);
-                    // Log first 3 IDs for comparison
-                    if (cache.data.length > 0) {
-                        console.log(`[DEBUG] Sample IDs: ${cache.data.slice(0, 3).map(a => a.id).join(', ')}`);
-                    }
                 }
-            } else {
-                console.error('[DEBUG] Cache is empty or invalid');
             }
         }
 
@@ -269,13 +323,10 @@ const getArticleById = async (req, res) => {
         }
 
         // 3. Get Related News
-        // Fetch 3 items from the same category
-        // For simplicity, we get from cache as "Suggested Read"
         let relatedArticles = [];
         if (category) {
-            const cachedCategoryNews = getCachedNews(category, 1, 10); // get top 10 to pick from
+            const cachedCategoryNews = getCachedNews(category, 1, 10);
             if (cachedCategoryNews && cachedCategoryNews.articles) {
-                // Filter out current article
                 relatedArticles = cachedCategoryNews.articles
                     .filter(a => String(a.id) !== String(id))
                     .slice(0, 3);
@@ -302,14 +353,19 @@ const getArticleById = async (req, res) => {
 };
 
 /**
- * Get gallery images
- * @param {Object} req - Express request
- * @param {Object} res - Express response
+ * Get gallery images from Supabase
  */
 const getGallery = async (req, res) => {
     try {
-        // Filter out documents from public gallery
-        const images = await query('SELECT * FROM gallery_images WHERE image_url NOT LIKE ? ORDER BY uploaded_at DESC', ['%/uploads/documents/%']);
+        const { data: images, error } = await supabase
+            .from('gallery_images')
+            .select('*')
+            .not('image_url', 'ilike', '%/public/documents/%')
+            .not('image_url', 'ilike', '%/public/team/%')
+            .order('uploaded_at', { ascending: false });
+
+        if (error) throw error;
+
         res.json({
             success: true,
             data: images
@@ -321,13 +377,18 @@ const getGallery = async (req, res) => {
 };
 
 /**
- * Get document images
- * @param {Object} req - Express request
- * @param {Object} res - Express response
+ * Get document images from Supabase
  */
 const getDocuments = async (req, res) => {
     try {
-        const images = await query('SELECT * FROM gallery_images WHERE image_url LIKE ? ORDER BY uploaded_at DESC', ['%/uploads/documents/%']);
+        const { data: images, error } = await supabase
+            .from('gallery_images')
+            .select('*')
+            .ilike('image_url', '%/public/documents/%')
+            .order('uploaded_at', { ascending: false });
+
+        if (error) throw error;
+
         res.json({
             success: true,
             data: images
@@ -335,6 +396,29 @@ const getDocuments = async (req, res) => {
     } catch (error) {
         console.error('Get documents error:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch documents', error: error.message });
+    }
+};
+
+/**
+ * Get team members from Supabase
+ */
+const getTeamMembers = async (req, res) => {
+    try {
+        const { data: images, error } = await supabase
+            .from('gallery_images')
+            .select('*')
+            .ilike('image_url', '%/public/team/%')
+            .order('uploaded_at', { ascending: false });
+
+        if (error) throw error;
+
+        res.json({
+            success: true,
+            data: images
+        });
+    } catch (error) {
+        console.error('Get team members error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch team members', error: error.message });
     }
 };
 
@@ -346,4 +430,5 @@ module.exports = {
     getArticleById,
     getGallery,
     getDocuments,
+    getTeamMembers,
 };

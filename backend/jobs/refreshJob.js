@@ -2,7 +2,7 @@ const cron = require('node-cron');
 const config = require('../config/config');
 const { fetchNewsFromAPI } = require('../services/newsService');
 const { saveCache, isCacheValid, loadCache } = require('../utils/cache');
-const { query } = require('../config/db');
+const { supabase } = require('../config/supabase');
 
 /**
  * Refresh news cache from API
@@ -17,8 +17,16 @@ const refreshNewsCache = async (options = {}) => {
 
     try {
         // 1. Check Settings
-        const settings = await query('SELECT setting_value FROM settings WHERE setting_key = "enable_external_api"');
-        const isEnabled = settings.length > 0 ? settings[0].setting_value === 'true' : true;
+        const { data: settings, error } = await supabase
+            .from('settings')
+            .select('setting_value')
+            .eq('setting_key', 'enable_external_api');
+
+        if (error) {
+            console.error('⚠️ Failed to fetch settings, defaulting to enabled:', error.message);
+        }
+
+        const isEnabled = (settings && settings.length > 0) ? settings[0].setting_value === 'true' : true;
 
         if (!isEnabled && !options.hardReset) {
             console.log('🛑 External API fetching is DISABLED in settings. Skipping update.');

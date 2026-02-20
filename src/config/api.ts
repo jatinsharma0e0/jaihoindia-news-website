@@ -15,7 +15,7 @@ export const API_ENDPOINTS = {
     // Admin endpoints
     ADMIN_LOGIN: '/admin/login',
     ADMIN_ARTICLES: '/admin/articles',
-    ADMIN_ARTICLE: (id: number) => `/admin/articles/${id}`,
+    ADMIN_ARTICLE: (id: string | number) => `/admin/articles/${id}`,
     ADMIN_UPLOAD: '/admin/upload',
     ADMIN_REFRESH_CACHE: '/admin/refresh-cache',
 
@@ -28,8 +28,10 @@ export const API_ENDPOINTS = {
     // Gallery
     GALLERY: '/news/gallery',
     DOCUMENTS: '/news/documents',
+    TEAM: '/news/team-members',
     ADMIN_GALLERY: '/admin/gallery',
-    ADMIN_GALLERY_ITEM: (id: number) => `/admin/gallery/${id}`,
+    ADMIN_GALLERY_ITEM: (id: string | number) => `/admin/gallery/${id}`,
+    ADMIN_ARRANGEMENT: (section: string) => `/admin/arrangement/${section}`,
 } as const;
 
 // Request timeout (10 seconds)

@@ -52,7 +52,7 @@ export interface CacheStatusData {
 export interface AdminLoginData {
     token: string;
     admin: {
-        id: number;
+        id: string | number;
         username: string;
         email: string;
         role: string;
@@ -60,7 +60,7 @@ export interface AdminLoginData {
 }
 
 export interface Article {
-    id?: number;
+    id?: string | number;
     title: string;
     slug: string;
     summary: string;
@@ -158,8 +158,11 @@ class ApiClient {
         });
     }
 
-    async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-        return this.request<T>(endpoint, { method: 'DELETE' });
+    async delete<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+        return this.request<T>(endpoint, {
+            method: 'DELETE',
+            body: body ? JSON.stringify(body) : undefined,
+        });
     }
 
     async uploadFile<T>(endpoint: string, file: File): Promise<ApiResponse<T>> {
@@ -330,16 +333,16 @@ export const createArticle = async (article: Omit<Article, 'id'>): Promise<Artic
     return response.data;
 };
 
-export const updateArticle = async (id: number, article: Partial<Article>): Promise<Article> => {
+export const updateArticle = async (id: string | number, article: Partial<Article>): Promise<Article> => {
     const response = await apiClient.put<Article>(API_ENDPOINTS.ADMIN_ARTICLE(id), article);
     return response.data;
 };
 
-export const deleteArticle = async (id: number): Promise<void> => {
+export const deleteArticle = async (id: string | number): Promise<void> => {
     await apiClient.delete(API_ENDPOINTS.ADMIN_ARTICLE(id));
 };
 
-export const uploadImage = async (file: File, type: 'articles' | 'gallery' | 'documents' = 'articles'): Promise<{ success: boolean; url: string }> => {
+export const uploadImage = async (file: File, type: 'articles' | 'gallery' | 'documents' | 'team' = 'articles'): Promise<{ success: boolean; url: string }> => {
     const response = await apiClient.uploadFile<{ success: boolean; url: string }>(
         `${API_ENDPOINTS.ADMIN_UPLOAD}?type=${type}`,
         file
@@ -367,7 +370,7 @@ export const updateSetting = async (key: string, value: string): Promise<any> =>
 
 // Gallery Types and Services
 export interface GalleryImage {
-    id: number;
+    id: string | number;
     image_url: string;
     caption?: string;
     uploaded_at?: string;
@@ -393,8 +396,18 @@ export const fetchDocuments = async (): Promise<GalleryImage[]> => {
     }
 };
 
+export const fetchTeamMembers = async (): Promise<GalleryImage[]> => {
+    try {
+        const response = await apiClient.get<GalleryImage[]>(API_ENDPOINTS.TEAM);
+        return response.data;
+    } catch (error) {
+        console.error('Failed to fetch team members:', error);
+        return [];
+    }
+};
+
 // Admin Gallery Services
-export const fetchAdminGalleryImages = async (type: 'gallery' | 'documents' = 'gallery'): Promise<GalleryImage[]> => {
+export const fetchAdminGalleryImages = async (type: 'gallery' | 'documents' | 'team' = 'gallery'): Promise<GalleryImage[]> => {
     try {
         const response = await apiClient.get<GalleryImage[]>(`${API_ENDPOINTS.ADMIN_GALLERY}?type=${type}`);
         return response.data;
@@ -409,8 +422,36 @@ export const addGalleryImage = async (imageUrl: string, caption?: string): Promi
     return response.data;
 };
 
-export const deleteGalleryImage = async (id: number): Promise<void> => {
+export const deleteGalleryImage = async (id: string | number): Promise<void> => {
     await apiClient.delete(API_ENDPOINTS.ADMIN_GALLERY_ITEM(id));
+};
+
+// Team Member Services (dedicated functions — kept separate from gallery for clarity)
+export const addTeamMember = async (imageUrl: string): Promise<GalleryImage> => {
+    const response = await apiClient.post<GalleryImage>(API_ENDPOINTS.ADMIN_GALLERY, { image_url: imageUrl });
+    return response.data;
+};
+
+export const deleteTeamMember = async (id: string | number): Promise<void> => {
+    await apiClient.delete(API_ENDPOINTS.ADMIN_GALLERY_ITEM(id));
+};
+
+// Bulk delete — single request for multiple items (Storage + DB)
+export const bulkDeleteGalleryItems = async (ids: (string | number)[]): Promise<{ deletedCount: number }> => {
+    const response = await apiClient.delete(`${API_ENDPOINTS.ADMIN_GALLERY}/bulk`, { ids });
+    return response.data as { deletedCount: number };
+};
+
+// Arrangement — load and save custom display order (persisted in settings table)
+export const fetchArrangement = async (section: string): Promise<(string | number)[] | null> => {
+    const response = await apiClient.get<{ data: { order: (string | number)[] | null } }>(
+        API_ENDPOINTS.ADMIN_ARRANGEMENT(section)
+    );
+    return response.data.data.order;
+};
+
+export const saveArrangement = async (section: string, order: (string | number)[]): Promise<void> => {
+    await apiClient.post(API_ENDPOINTS.ADMIN_ARRANGEMENT(section), { order });
 };
 
 // Export apiClient for direct use if needed

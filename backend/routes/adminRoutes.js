@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const { supabase } = require('../config/supabase');
 const config = require('../config/config');
 const {
     login,
@@ -14,40 +14,19 @@ const {
     getGallery,
     addToGallery,
     removeFromGallery,
+    bulkRemoveFromGallery,
+    getArrangement,
+    saveArrangement,
 } = require('../controllers/adminController');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 /**
  * Admin authentication and article management routes
- * All routes except login require JWT authentication
  */
 
-// Configure multer for file uploads with dynamic subdirectories
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // Get upload type from query parameter, default to 'articles'
-        const uploadType = req.query.type || 'articles';
-        const validTypes = ['articles', 'gallery', 'documents'];
-
-        // Validate upload type
-        const subDir = validTypes.includes(uploadType) ? uploadType : 'articles';
-        const uploadDir = path.join(__dirname, '..', config.upload.dir, subDir);
-
-        // Create directory if it doesn't exist
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    },
-});
-
+// Use memory storage for Supabase uploads
 const upload = multer({
-    storage: storage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: config.upload.maxFileSize },
     fileFilter: (req, file, cb) => {
         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -71,8 +50,8 @@ router.post('/articles', createArticle);
 router.put('/articles/:id', updateArticle);
 router.delete('/articles/:id', deleteArticle);
 
-// File upload
-router.post('/upload', upload.single('image'), (req, res) => {
+// File upload to Supabase Storage
+router.post('/upload', upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({
@@ -81,22 +60,44 @@ router.post('/upload', upload.single('image'), (req, res) => {
             });
         }
 
-        // Get upload type for URL construction
-        const uploadType = req.query.type || 'articles';
-        const validTypes = ['articles', 'gallery', 'documents'];
-        const subDir = validTypes.includes(uploadType) ? uploadType : 'articles';
+        // Debugging logs
+        console.log('Upload Request - Query:', req.query);
+        console.log('Upload Request - File:', req.file ? req.file.originalname : 'No file');
 
-        // Use config.server.url or hardcode for now
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const fileUrl = `${baseUrl}/uploads/${subDir}/${req.file.filename}`;
+        // Get upload type/bucket from query parameter
+        const bucketName = req.query.type || 'articles';
+        const validBuckets = ['articles', 'gallery', 'documents', 'team'];
+        const bucket = validBuckets.includes(bucketName) ? bucketName : 'articles';
+
+        // Generate unique filename
+        const fileExt = path.extname(req.file.originalname);
+        const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
+
+        // Upload to Supabase Storage
+        const { data, error } = await supabase.storage
+            .from(bucket)
+            .upload(fileName, req.file.buffer, {
+                contentType: req.file.mimetype,
+                upsert: true
+            });
+
+        if (error) throw error;
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(fileName);
+
+        const fileUrl = publicUrlData.publicUrl;
 
         res.json({
             success: true,
-            message: 'File uploaded successfully',
+            message: 'File uploaded successfully to Supabase',
             data: {
-                filename: req.file.filename,
+                filename: fileName,
                 url: fileUrl,
-                path: req.file.path,
+                bucket: bucket,
+                path: data.path
             },
         });
     } catch (error) {
@@ -115,6 +116,11 @@ router.post('/refresh-cache', authorizeRoles('admin'), forceRefresh);
 // Gallery Management
 router.get('/gallery', getGallery);
 router.post('/gallery', addToGallery);
+router.delete('/gallery/bulk', bulkRemoveFromGallery); // Bulk delete — must be before /:id
 router.delete('/gallery/:id', removeFromGallery);
+
+// Arrangement order (gallery / team / documents)
+router.get('/arrangement/:section', getArrangement);
+router.post('/arrangement/:section', saveArrangement);
 
 module.exports = router;

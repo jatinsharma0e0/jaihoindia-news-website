@@ -33,4 +33,7 @@ router.get('/gallery', require('../controllers/newsController').getGallery);
 // Documents
 router.get('/documents', require('../controllers/newsController').getDocuments);
 
+// Team Members
+router.get('/team-members', require('../controllers/newsController').getTeamMembers);
+
 module.exports = router;
