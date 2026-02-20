@@ -8,12 +8,12 @@ export const API_BASE_URL = isProd
 export const API_ENDPOINTS = {
     // News endpoints
     HOME: '/news/home',
-    CATEGORY: (category: string) => `/news/category/${category}`,
+    CATEGORY: (category: string) => `/news/category?category=${category}`,
     ALL_NEWS: '/news/all',
     CACHE_STATUS: '/news/cache/status',
 
     // Single Article
-    ARTICLE: (id: string | number) => `/news/article/${id}`,
+    ARTICLE: (id: string | number) => `/news/article?id=${id}`,
 
     // Admin endpoints
     ADMIN_LOGIN: '/admin/login',
