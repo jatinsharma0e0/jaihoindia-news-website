@@ -1,36 +1,31 @@
-const fs = require('fs');
-const path = require('path');
+const { supabase } = require('../config/supabase');
 const config = require('../config/config');
 
-const CACHE_DIR = path.join(__dirname, '..', config.cache.dir);
-const CACHE_FILE = path.join(CACHE_DIR, config.cache.file);
 const CACHE_DURATION_MS = config.cache.refreshIntervalMinutes * 60 * 1000;
 
-// Ensure cache directory exists
-const ensureCacheDir = () => {
-    if (!fs.existsSync(CACHE_DIR)) {
-        fs.mkdirSync(CACHE_DIR, { recursive: true });
-        console.log('✅ Cache directory created:', CACHE_DIR);
-    }
-};
+// ─── News Cache ──────────────────────────────────────────────────────────────
 
 /**
- * Save cache data to JSON file
- * @param {Object} data - News data to cache
- * @param {Date} timestamp - Server timestamp
+ * Save news cache to Supabase settings table
  */
-const saveCache = (data, timestamp = new Date()) => {
+const saveCache = async (data, timestamp = new Date()) => {
     try {
-        ensureCacheDir();
-
-        const cacheData = {
+        const cachePayload = {
             lastUpdated: timestamp.toISOString(),
             serverTime: timestamp.getTime(),
-            data: data,
+            data,
         };
 
-        fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2));
-        console.log(`✅ Cache saved at ${timestamp.toISOString()}`);
+        const { error } = await supabase
+            .from('settings')
+            .upsert({
+                setting_key: 'news_cache',
+                setting_value: JSON.stringify(cachePayload),
+                updated_at: timestamp.toISOString(),
+            }, { onConflict: 'setting_key' });
+
+        if (error) throw error;
+        console.log(`✅ Cache saved to Supabase at ${timestamp.toISOString()}`);
         return true;
     } catch (error) {
         console.error('❌ Cache save error:', error.message);
@@ -39,20 +34,18 @@ const saveCache = (data, timestamp = new Date()) => {
 };
 
 /**
- * Load cache data from JSON file
- * @returns {Object|null} - Cached data or null if not found
+ * Load news cache from Supabase settings table
  */
-const loadCache = () => {
+const loadCache = async () => {
     try {
-        if (!fs.existsSync(CACHE_FILE)) {
-            console.log('ℹ️ No cache file found');
-            return null;
-        }
+        const { data, error } = await supabase
+            .from('settings')
+            .select('setting_value')
+            .eq('setting_key', 'news_cache')
+            .single();
 
-        const fileContent = fs.readFileSync(CACHE_FILE, 'utf8');
-        const cacheData = JSON.parse(fileContent);
-
-        return cacheData;
+        if (error || !data) return null;
+        return JSON.parse(data.setting_value);
     } catch (error) {
         console.error('❌ Cache load error:', error.message);
         return null;
@@ -60,67 +53,47 @@ const loadCache = () => {
 };
 
 /**
- * Check if cache is still valid based on SERVER TIME ONLY
- * @returns {boolean} - True if cache is valid, false otherwise
+ * Check if cache is still valid based on serverTime
  */
-const isCacheValid = () => {
-    const cache = loadCache();
-
-    if (!cache || !cache.serverTime) {
-        return false;
-    }
-
-    const currentServerTime = Date.now();
-    const cacheAge = currentServerTime - cache.serverTime;
-
+const isCacheValid = async () => {
+    const cache = await loadCache();
+    if (!cache || !cache.serverTime) return false;
+    const cacheAge = Date.now() - cache.serverTime;
     const isValid = cacheAge < CACHE_DURATION_MS;
-
     if (isValid) {
         const minutesRemaining = Math.floor((CACHE_DURATION_MS - cacheAge) / 60000);
-        console.log(`✅ Cache is valid (expires in ${minutesRemaining} minutes)`);
+        console.log(`✅ Cache valid (expires in ${minutesRemaining} min)`);
     } else {
-        console.log('⏰ Cache has expired');
+        console.log('⏰ Cache expired');
     }
-
     return isValid;
 };
 
 /**
- * Get cached news with pagination
- * @param {string} category - Category to filter (optional, 'all' for all categories)
- * @param {number} page - Page number (default: 1)
- * @param {number} limit - Items per page (default: 20)
- * @returns {Object|null} - Paginated news data
+ * Get paginated news from cache, optionally filtered by category
  */
-const getCachedNews = (category = 'all', page = 1, limit = 20) => {
-    const cache = loadCache();
+const getCachedNews = async (category = 'all', page = 1, limit = 20) => {
+    const cache = await loadCache();
+    if (!cache || !cache.data) return null;
 
-    if (!cache || !cache.data) {
-        return null;
-    }
-
-    let newsItems = cache.data;
-
-    // Filter by category if specified
+    let items = cache.data;
     if (category !== 'all' && category) {
-        newsItems = newsItems.filter(item =>
-            item.category && item.category.toLowerCase() === category.toLowerCase()
+        items = items.filter(
+            item => item.category && item.category.toLowerCase() === category.toLowerCase()
         );
     }
 
-    // Calculate pagination
     const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedItems = newsItems.slice(startIndex, endIndex);
+    const paginatedItems = items.slice(startIndex, startIndex + limit);
 
     return {
         articles: paginatedItems,
         pagination: {
             currentPage: page,
-            totalItems: newsItems.length,
-            totalPages: Math.ceil(newsItems.length / limit),
+            totalItems: items.length,
+            totalPages: Math.ceil(items.length / limit),
             itemsPerPage: limit,
-            hasNextPage: endIndex < newsItems.length,
+            hasNextPage: startIndex + limit < items.length,
             hasPrevPage: page > 1,
         },
         lastUpdated: cache.lastUpdated,
@@ -129,40 +102,36 @@ const getCachedNews = (category = 'all', page = 1, limit = 20) => {
 
 /**
  * Get cache statistics
- * @returns {Object|null} - Cache stats
  */
-const getCacheStats = () => {
-    const cache = loadCache();
+const getCacheStats = async () => {
+    const cache = await loadCache();
+    if (!cache) return null;
 
-    if (!cache) {
-        return null;
-    }
-
-    const currentServerTime = Date.now();
-    const cacheAge = currentServerTime - cache.serverTime;
+    const cacheAge = Date.now() - cache.serverTime;
     const timeUntilExpiry = CACHE_DURATION_MS - cacheAge;
 
     return {
         lastUpdated: cache.lastUpdated,
-        cacheAge: Math.floor(cacheAge / 1000), // seconds
-        expiresIn: Math.floor(timeUntilExpiry / 1000), // seconds
-        isValid: isCacheValid(),
+        cacheAge: Math.floor(cacheAge / 1000),
+        expiresIn: Math.floor(timeUntilExpiry / 1000),
+        isValid: cacheAge < CACHE_DURATION_MS,
         totalArticles: cache.data ? cache.data.length : 0,
     };
 };
 
 /**
- * Clear the cache file (Hard Reset)
- * @returns {boolean} - True if successful
+ * Clear the cache (Hard Reset)
  */
-const clearCache = () => {
+const clearCache = async () => {
     try {
-        if (fs.existsSync(CACHE_FILE)) {
-            fs.unlinkSync(CACHE_FILE);
-            console.log('🗑️ Cache file deleted (Hard Reset)');
-            return true;
-        }
-        return true; // File doesn't exist, so technically "cleared"
+        const { error } = await supabase
+            .from('settings')
+            .delete()
+            .eq('setting_key', 'news_cache');
+
+        if (error) throw error;
+        console.log('🗑️ Cache cleared from Supabase (Hard Reset)');
+        return true;
     } catch (error) {
         console.error('❌ Cache clear error:', error.message);
         return false;

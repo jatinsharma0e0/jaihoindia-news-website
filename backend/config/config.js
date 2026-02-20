@@ -39,7 +39,12 @@ const config = {
   },
 
   cors: {
-    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'],
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:8080',
+      process.env.FRONTEND_URL,            // Vercel prod URL e.g. https://your-app.vercel.app
+    ].filter(Boolean),
     credentials: true,
   },
 };

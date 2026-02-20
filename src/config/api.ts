@@ -1,5 +1,8 @@
-// API Base URL Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// API Base URL — in production, API is on the same origin via Vercel rewrites
+const isProd = import.meta.env.PROD;
+export const API_BASE_URL = isProd
+    ? `${window.location.origin}/api`
+    : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
 
 // API Endpoints
 export const API_ENDPOINTS = {
