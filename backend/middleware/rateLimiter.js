@@ -30,7 +30,24 @@ const authLimiter = rateLimit({
     },
 });
 
+/**
+ * Strict rate limiter for the /refresh-cache endpoint.
+ * UptimeRobot calls every 3 hours = max 8/day.
+ * Allow max 5 per hour as a safety buffer.
+ */
+const cacheRefreshLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: 'Too many cache refresh requests. Max 5 per hour allowed.',
+    },
+});
+
 module.exports = {
     apiLimiter,
     authLimiter,
+    cacheRefreshLimiter,
 };

@@ -5,7 +5,9 @@ const {
     getCategoryNews,
     getAllNews,
     getCacheStatus,
+    refreshCache,
 } = require('../controllers/newsController');
+const { cacheRefreshLimiter } = require('../middleware/rateLimiter');
 
 /**
  * Public news routes
@@ -35,5 +37,11 @@ router.get('/documents', require('../controllers/newsController').getDocuments);
 
 // Team Members
 router.get('/team-members', require('../controllers/newsController').getTeamMembers);
+
+// ── Secure cache refresh (UptimeRobot / external cron) ───────────────────────
+// Rate limited: max 5 requests per hour per IP
+// Authenticated via ?secret=<CRON_SECRET> query param
+// Final URL: GET /api/news/refresh-cache?secret=<CRON_SECRET>
+router.get('/refresh-cache', cacheRefreshLimiter, refreshCache);
 
 module.exports = router;

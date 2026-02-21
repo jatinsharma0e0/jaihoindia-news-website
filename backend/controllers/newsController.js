@@ -1,5 +1,9 @@
 const { getCachedNews, getCacheStats, loadCache } = require('../utils/cache');
 const { supabase } = require('../config/supabase');
+const { refreshNewsCache } = require('../jobs/refreshJob');
+
+// ── Refresh lock: prevents concurrent cache refresh runs ─────────────────────
+let isRefreshing = false;
 
 /**
  * Get home page news (breaking + category previews)
@@ -313,6 +317,76 @@ const getTeamMembers = async (req, res) => {
     }
 };
 
+/**
+ * Secure cache refresh endpoint — called by UptimeRobot every 3 hours.
+ *
+ * Security layers:
+ *  1. Secret token in query param (?secret=)
+ *  2. Rate limited by cacheRefreshLimiter (5 req/hour, applied in route)
+ *  3. Boolean lock to prevent overlapping refreshes
+ *
+ * GET /api/news/refresh-cache?secret=<CRON_SECRET>
+ */
+const refreshCache = async (req, res) => {
+    const startTime = Date.now();
+    const callerIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const timestamp = new Date().toISOString();
+
+    console.log(`\n🔔 [Cache Refresh] Request received | IP: ${callerIP} | Time: ${timestamp}`);
+
+    // ── 1. Secret token validation ────────────────────────────────────────────
+    const { secret } = req.query;
+    const expectedSecret = process.env.CRON_SECRET;
+
+    if (!expectedSecret) {
+        console.error('❌ [Cache Refresh] CRON_SECRET env var is not set!');
+        return res.status(500).json({ success: false, message: 'Server misconfiguration: CRON_SECRET not set.' });
+    }
+
+    if (!secret || secret !== expectedSecret) {
+        console.warn(`🚫 [Cache Refresh] REJECTED — Invalid secret from IP: ${callerIP}`);
+        return res.status(403).json({ success: false, message: 'Forbidden: Invalid or missing secret token.' });
+    }
+
+    // ── 2. Refresh lock — prevent concurrent runs ──────────────────────────────
+    if (isRefreshing) {
+        console.warn(`⚠️ [Cache Refresh] SKIPPED — A refresh is already running. IP: ${callerIP}`);
+        return res.status(429).json({
+            success: false,
+            message: 'Cache refresh is already in progress. Try again in a moment.',
+        });
+    }
+
+    // ── 3. Start refresh ──────────────────────────────────────────────────────
+    isRefreshing = true;
+    console.log(`✅ [Cache Refresh] Authenticated. Starting refresh... | IP: ${callerIP}`);
+
+    try {
+        // Force refresh: bypass the isCacheValid() guard inside refreshNewsCache
+        await refreshNewsCache({ hardReset: false });
+
+        const durationMs = Date.now() - startTime;
+        console.log(`✅ [Cache Refresh] SUCCESS | Duration: ${durationMs}ms | IP: ${callerIP}`);
+
+        return res.json({
+            success: true,
+            message: 'Cache refreshed successfully.',
+            refreshedAt: new Date().toISOString(),
+            durationMs,
+        });
+    } catch (error) {
+        const durationMs = Date.now() - startTime;
+        console.error(`❌ [Cache Refresh] FAILED | Error: ${error.message} | Duration: ${durationMs}ms | IP: ${callerIP}`);
+        return res.status(500).json({
+            success: false,
+            message: 'Cache refresh failed.',
+            error: error.message,
+        });
+    } finally {
+        isRefreshing = false;
+    }
+};
+
 module.exports = {
     getHomeNews,
     getCategoryNews,
@@ -322,4 +396,5 @@ module.exports = {
     getGallery,
     getDocuments,
     getTeamMembers,
+    refreshCache,
 };
