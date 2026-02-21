@@ -4,7 +4,6 @@ import { Plus, LogOut, Newspaper, RefreshCw, Image as ImageIcon, LayoutDashboard
 import {
     fetchAdminArticles,
     deleteArticle,
-    adminLogout,
     refreshCache,
     fetchCacheStatus,
     type Article,
@@ -12,6 +11,7 @@ import {
     fetchSettings,
     updateSetting
 } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 import { Trash2 } from 'lucide-react';
 import GalleryManager from '@/components/admin/GalleryManager';
 import DocumentsManager from '@/components/admin/DocumentsManager';
@@ -41,6 +41,7 @@ export default function AdminDashboard() {
     const [settingsLoading, setSettingsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'gallery' | 'documents' | 'team'>('overview');
     const navigate = useNavigate();
+    const { signOut } = useAuth();
 
     useEffect(() => {
         loadData();
@@ -119,8 +120,8 @@ export default function AdminDashboard() {
         </button>
     );
 
-    const handleLogout = () => {
-        adminLogout();
+    const handleLogout = async () => {
+        await signOut();
         navigate('/admin/login');
     };
 
@@ -388,7 +389,7 @@ export default function AdminDashboard() {
                                                                         Edit
                                                                     </Link>
                                                                     <button
-                                                                        onClick={() => article.id && handleDelete(article.id)}
+                                                                        onClick={() => article.id != null && handleDelete(Number(article.id))}
                                                                         className="px-3 py-1 text-sm bg-red-500/20 text-red-500 hover:bg-red-500/30 rounded transition"
                                                                     >
                                                                         Delete
