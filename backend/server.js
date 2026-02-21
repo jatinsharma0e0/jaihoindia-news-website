@@ -8,6 +8,7 @@ const config = require('./config/config');
 const { testConnection } = require('./config/supabase');
 const { initRefreshJob } = require('./jobs/refreshJob');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
+const { apiLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 // Import routes
 const newsRoutes = require('./routes/newsRoutes');
@@ -49,6 +50,10 @@ app.use(cors({
 // Body parser middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Rate Limiting
+app.use('/api/', apiLimiter);
+app.use('/api/admin/', authLimiter);
 
 // Serve static files (fallback for local uploads if any exist)
 app.use('/uploads', express.static(path.join(__dirname, config.upload.dir)));

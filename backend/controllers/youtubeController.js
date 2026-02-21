@@ -68,7 +68,7 @@ const getVideos = async (req, res) => {
         const response = await axios.get('https://www.googleapis.com/youtube/v3/search', {
             params: {
                 key: config.youtube.apiKey,
-                channelId: 'YOUR_CHANNEL_ID',
+                channelId: config.youtube.channelId,
                 part: 'snippet',
                 order: 'date',
                 maxResults: 10,

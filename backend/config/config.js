@@ -12,7 +12,7 @@ const config = {
   },
 
   newsApi: {
-    key: process.env.NEWSDATA_API_KEY || 'pub_a4bb2a07e85b4193874ecdafe46d6902',
+    key: process.env.NEWSDATA_API_KEY,
     url: process.env.NEWSDATA_API_URL || 'https://newsdata.io/api/1/latest',
     params: {
       country: 'in,us,jp,cn',
@@ -24,6 +24,7 @@ const config = {
 
   youtube: {
     apiKey: process.env.YOUTUBE_API_KEY || '',
+    channelId: process.env.YOUTUBE_CHANNEL_ID || '',
     cacheHours: parseInt(process.env.YOUTUBE_CACHE_HOURS) || 6,
   },
 
